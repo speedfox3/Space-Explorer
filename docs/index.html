@@ -2,16 +2,20 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Space MMO</title>
-  <link rel="stylesheet" href="css/style.css">
+  <title>Space MMO - Login</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <h1>🚀 Space MMO</h1>
 
-  <div id="ship-info"></div>
+<h1>🚀 Space MMO</h1>
 
-  <button onclick="loadShip()">Ver nave</button>
+<div id="g_id_onload"
+     data-client_id="244158400447-k4ls2rl2fi3pdd60h109net3e9f4lsha.apps.googleusercontent.com"
+     data-callback="handleCredentialResponse">
+</div>
 
-  <script src="js/game.js"></script>
+<div class="g_id_signin"></div>
+
+<script src="js/auth.js"></script>
 </body>
 </html>
