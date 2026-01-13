@@ -1,31 +1,87 @@
 <!DOCTYPE html>
-
 <html lang="es">
 
 <head>
-  <meta charset="UTF-8">
-  <title>Space MMO - Login</title>
-  <script>
-  const SUPABASE_URL = "https://TU-PROYECTO.supabase.co";
-  const SUPABASE_KEY = "TU_ANON_PUBLIC_KEY";
-  const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-  supabase.auth.getSession().then(({ data }) => {
-    if (!data.session) {
-      window.location.href = "login.html";
-    }
-  });
-</script>
+  <meta charset="UTF-8" />
+  <title>Space Explorer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="css/style.css" />
 </head>
+
 <body>
+  <div class="app">
+    <div>
+      <small>Motores</small>
+      <div class="bar">
+        <div style="width:60%"></div>
+      </div>
+    </div>
+    <div>
+      <small>Baterías</small>
+      <div class="bar">
+        <div style="width:40%"></div>
+      </div>
+    </div>
+  </div>
+  </div>
 
-<h1>🚀 Space MMO</h1>
+
+  </aside>
 
 
+  <!-- ZONA DINÁMICA -->
+  <main class="main">
 
-<div class="g_id_signin">
-<button onclick="loginWithGoogle()">Login con Google</button>
-</div>
+
+    <div class="location">
+      <div>
+        <h1>Sistema Solar: Helios-14</h1>
+        <small>Galaxia Andrómeda Exterior</small>
+      </div>
+    </div>
+
+
+    <section class="zone">
+      <h2>Objetos disponibles</h2>
+
+
+      <div class="objects">
+
+
+        <div class="object">
+          <h3>Planeta Ígneo</h3>
+          <small>Rico en minerales</small>
+          <div class="cost">⏱ 15 min • ⚡ 40 energía</div>
+          <button>Viajar</button>
+        </div>
+
+
+        <div class="object">
+          <h3>Cinturón de Asteroides</h3>
+          <small>Minería básica</small>
+          <div class="cost">⏱ 8 min • ⚡ 20 energía</div>
+          <button>Explorar</button>
+        </div>
+
+
+        <div class="object">
+          <h3>Estación Abandonada</h3>
+          <small>Mini-juego de saqueo</small>
+          <div class="cost">⏱ 25 min • ⚡ 60 energía</div>
+          <button disabled>Energía insuficiente</button>
+        </div>
+
+
+      </div>
+    </section>
+
+
+  </main>
+
+
+  </div>
+
 
 </body>
+
 </html>
