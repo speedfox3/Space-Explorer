@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Crear Personaje - Space Explorer</title>
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="character-create-view">
+
+  <main class="character-create">
+    <h1>🧑‍🚀 Crear Personaje</h1>
+
+    <!-- Nombre -->
+    <section class="form-section">
+      <label for="player-name">Nombre del comandante</label>
+      <input
+        type="text"
+        id="player-name"
+        maxlength="20"
+        placeholder="Ej: SpeedFox"
+      />
+    </section>
+
+    <!-- Razas -->
+    <section class="form-section">
+      <h2>🌌 Elegí tu raza</h2>
+      <div class="options">
+        <button type="button" data-race="human">Humano</button>
+        <button type="button" data-race="cyborg">Cyborg</button>
+        <button type="button" data-race="alien">Alien</button>
+      </div>
+    </section>
+
+    <!-- Naves -->
+    <section class="form-section">
+      <h2>🚀 Nave inicial</h2>
+      <div class="options">
+        <button type="button" data-ship="scout">Scout</button>
+        <button type="button" data-ship="freighter">Freighter</button>
+        <button type="button" data-ship="explorer">Explorer</button>
+      </div>
+    </section>
+
+    <!-- Confirmar -->
+    <button id="confirm-create" class="primary">
+      Crear personaje
+    </button>
+  </main>
+
+  <!-- Lógica -->
+  <script src="js/character-create.js"></script>
+</body>
+</html>

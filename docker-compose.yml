@@ -1,0 +1,62 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: space_user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: space_mmo
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_URL: postgresql://space_user:password@db/space_mmo
+      SECRET_KEY: change-me
+      CELERY_BROKER_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./Backend:/app
+
+  worker:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    command: celery -A app.worker worker --loglevel=info
+    depends_on:
+      - redis
+      - db
+    environment:
+      DATABASE_URL: postgresql://space_user:password@db/space_mmo
+      CELERY_BROKER_URL: redis://redis:6379/0
+    volumes:
+      - ./Backend:/app
+    # example of invoking demo task: in another shell run
+    # docker-compose exec backend python -c "from app.tasks import demo_task; print(demo_task.delay(1).id)"
+  beat:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    command: celery -A app.worker beat --loglevel=info
+    depends_on:
+      - redis
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+    volumes:
+      - ./Backend:/app
+
+volumes:
+  db_data:
