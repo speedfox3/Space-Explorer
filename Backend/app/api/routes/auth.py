@@ -28,3 +28,13 @@ def login(req: LoginReq, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     token = create_access_token({"sub": str(user.id)})
     return {"access_token": token, "token_type": "bearer"}
+
+from fastapi import APIRouter, HTTPException
+from google.oauth2 import id_token
+from google.auth.transport import requests
+import os
+
+router = APIRouter()
+
+
+

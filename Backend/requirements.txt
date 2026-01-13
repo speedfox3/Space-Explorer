@@ -10,3 +10,5 @@ httpx
 alembic
 celery[redis]
 redis
+google-auth
+python-jose
