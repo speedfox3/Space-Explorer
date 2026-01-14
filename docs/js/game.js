@@ -85,43 +85,57 @@ function updateBatteryBar(current, max) {
  **************************************************/
 async function loadAndRenderSystemObjects(player) {
   const container = document.getElementById("objects-container");
+  if (!container) return;
+
   container.innerHTML = "";
 
-  document.getElementById("debug-log").textContent =
-  JSON.stringify(objects, null, 2);
-
-  const { data: objects } = await supabaseClient
+  const { data: objects, error } = await supabaseClient
     .from("space_objects")
     .select("*")
     .eq("system_id", player.system);
 
-  if (!objects) return;
+  if (error) {
+    console.error("Error cargando objetos:", error);
+    return;
+  }
 
-  objects
-    .filter(o => canSee(player, o))
-    .forEach(obj => {
-      const dist = distance(player, obj);
-      const interactable = canInteract(player, obj);
+  if (!objects || objects.length === 0) {
+    container.innerHTML = "<p>No hay objetos en este sistema</p>";
+    return;
+  }
 
-      const div = document.createElement("div");
-      div.className = "object";
-      div.innerHTML = `
-        <h3>${obj.type} (Nivel ${obj.level})</h3>
-        <small>Recursos: ${obj.resources_remaining}</small>
-        <div>📍 Distancia: ${Math.round(dist)}</div>
-        <button ${interactable ? "" : "disabled"}>
-          ${interactable ? "Interactuar" : "Fuera de alcance"}
-        </button>
-      `;
+  const debug = document.getElementById("debug-log");
+  if (debug) {
+    debug.textContent = JSON.stringify(objects, null, 2);
+  }
 
-      if (interactable) {
-        div.querySelector("button").onclick = () =>
-          interactWithObject(obj);
-      }
+  const visible = objects.filter(o => canSee(player, o));
 
-      container.appendChild(div);
-    });
+  visible.forEach(obj => {
+    const dist = distance(player, obj);
+    const interactable = canInteract(player, obj);
+
+    const div = document.createElement("div");
+    div.className = "object";
+
+    div.innerHTML = `
+      <h3>${obj.type} (Nivel ${obj.level})</h3>
+      <small>Recursos: ${obj.resources_remaining}</small>
+      <div class="cost">📍 Distancia: ${Math.round(dist)}</div>
+      <button ${interactable ? "" : "disabled"}>
+        ${interactable ? "Interactuar" : "Fuera de alcance"}
+      </button>
+    `;
+
+    if (interactable) {
+      div.querySelector("button").onclick = () =>
+        interactWithObject(obj);
+    }
+
+    container.appendChild(div);
+  });
 }
+
 
 /**************************************************
  * INTERACTION
