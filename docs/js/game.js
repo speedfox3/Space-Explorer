@@ -254,28 +254,15 @@ async function checkPlayer() {
     return;
   }
 
-  // ⏱️ ¿Llegó a destino?
-  if (
-    player.busy_until &&
-    new Date(player.busy_until) <= new Date() &&
-    player.target_x !== null
-  ) {
-    console.log("🛬 Viaje finalizado");
+// ⏱️ ¿Llegó a destino? if ( player.busy_until && new Date(player.busy_until) <= new Date() && player.target_x !== null ) { console.log("🛬 Viaje finalizado — finalizando en DB", { playerId: player.id, target_x: player.target_x, target_y: player.target_y, busy_until: player.busy_until });
 
-    await supabaseClient
-      .from("players")
-      .update({
-        x: player.target_x,
-        y: player.target_y,
-        busy_until: null,
-        target_x: null,
-        target_y: null
-      })
-      .eq("id", player.id);
+const { data: updated, error } = await supabaseClient .from("players") .update({ x: player.target_x, y: player.target_y, busy_until: null, target_x: null, target_y: null }) .eq("id", player.id) .select() .maybeSingle();
 
-    // volver a cargar estado real
-    return checkPlayer();
-  }
+if (error) { console.error("Error actualizando player al finalizar viaje:", error); // show to the user (optional) alert("Error al finalizar viaje (ver consola)."); return; }
+
+console.log("Player actualizado tras viaje:", updated);
+
+// volver a cargar estado real return checkPlayer(); }
 
   const { data: ship } = await supabaseClient
     .from("ships")
@@ -322,3 +309,4 @@ async function logout() {
   await supabaseClient.auth.signOut();
   location.href = "login.html";
 }
+
