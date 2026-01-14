@@ -86,6 +86,7 @@ function updateBatteryBar(current, max) {
  * SYSTEM OBJECTS
  **************************************************/
 async function loadAndRenderSystemObjects(player) {
+  console.log("🚀 loadAndRenderSystemObjects llamada", player);
   const container = document.getElementById("objects-container");
   container.innerHTML = "";
 
@@ -237,13 +238,21 @@ function clearTravelStatus() {
  **************************************************/
 async function checkPlayer() {
   const { data: { session } } = await supabaseClient.auth.getSession();
-  if (!session) return location.href = "login.html";
+  if (!session) {
+    window.location.href = "login.html";
+    return;
+  }
 
   const { data: player } = await supabaseClient
     .from("players")
     .select("*")
     .eq("id", session.user.id)
     .single();
+
+  if (!player) {
+    window.location.href = "createCharacter.html";
+    return;
+  }
 
   const { data: ship } = await supabaseClient
     .from("ships")
@@ -255,13 +264,15 @@ async function checkPlayer() {
   currentShip = ship;
 
   renderPlayer(player, ship);
-  loadAndRenderSystemObjects(player);
+
+  await loadAndRenderSystemObjects(player);
 
   if (!window.__batteryRegenStarted) {
     startBatteryRegen(ship.id);
     window.__batteryRegenStarted = true;
   }
 }
+
 
 /**************************************************
  * RENDER PLAYER
