@@ -160,9 +160,9 @@ async function handleMove() {
 
   if (isNaN(x) || isNaN(y)) return alert("Coordenadas inválidas");
   moveTo(x, y);
-  console.log("moviendo de", x , ",", y);
-}
 
+}
+console.log("moviendo de", x , ",", y);
 async function moveTo(targetX, targetY) {
   if (currentPlayer.busy_until) {
     alert("La nave está viajando");
@@ -205,14 +205,17 @@ async function moveTo(targetX, targetY) {
  **************************************************/
 async function finalizeTravel() {
   await supabaseClient.from("players")
+  
     .update({
-      x: currentPlayer.targetX,
-      y: currentPlayer.targetY,
+      x: currentPlayer.target_x,
+      y: currentPlayer.target_y,
       busy_until: null,
       target_x: null,
       target_y: null
     })
     .eq("id", currentPlayer.id);
+
+     console.log("moviendo a", target_x , ",", target_y);
 
   await checkPlayer();
   clearTravelStatus();
