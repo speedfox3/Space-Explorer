@@ -14,7 +14,7 @@ async function checkPlayer() {
     .single();
 
   if (!player) {
-    window.location.href = "create-character.html";
+    window.location.href = "createCharacter.html";
   } else {
     console.log("Jugador cargado:", player);
   }
