@@ -254,6 +254,29 @@ async function checkPlayer() {
     return;
   }
 
+  // ⏱️ ¿Llegó a destino?
+  if (
+    player.busy_until &&
+    new Date(player.busy_until) <= new Date() &&
+    player.target_x !== null
+  ) {
+    console.log("🛬 Viaje finalizado");
+
+    await supabaseClient
+      .from("players")
+      .update({
+        x: player.target_x,
+        y: player.target_y,
+        busy_until: null,
+        target_x: null,
+        target_y: null
+      })
+      .eq("id", player.id);
+
+    // volver a cargar estado real
+    return checkPlayer();
+  }
+
   const { data: ship } = await supabaseClient
     .from("ships")
     .select("*")
@@ -264,7 +287,6 @@ async function checkPlayer() {
   currentShip = ship;
 
   renderPlayer(player, ship);
-
   await loadAndRenderSystemObjects(player);
 
   if (!window.__batteryRegenStarted) {
@@ -272,6 +294,7 @@ async function checkPlayer() {
     window.__batteryRegenStarted = true;
   }
 }
+
 
 
 /**************************************************
