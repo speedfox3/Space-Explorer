@@ -100,7 +100,7 @@ async function loadAndRenderSystemObjects(player) {
   }
 
   objects
-    .filter(o => canSee(player, o))
+    //.filter(o => canSee(player, o))
     .forEach(obj => {
       const dist = distance(player, obj);
       const interactable = canInteract(player, obj);

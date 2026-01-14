@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <title>Space Explorer</title>
@@ -14,63 +15,70 @@
 </head>
 
 <body>
-<div class="app">
+  <div class="app">
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
 
-    <div class="player">
-      <div class="avatar">🚀</div>
-      <div>
-        <h2 id="player-name">Comandante</h2>
-        <small id="player-location">—</small>
-      </div>
-    </div>
-
-    <div class="stats">
-      <div class="stat">
-        <span>Créditos</span>
-        <span id="player-credits">0</span>
-      </div>
-      <button onclick="logout()">Logout</button>
-    </div>
-
-    <!-- MOVIMIENTO -->
-    <div class="movement">
-      <h3>Mover nave</h3>
-
-      <input type="number" id="move-x" placeholder="X" />
-      <input type="number" id="move-y" placeholder="Y" />
-
-      <button id="move-button" onclick="handleMove()">Mover</button>
-
-      <div id="travel-status"></div>
-      <div id="player-coords"></div>
-    </div>
-
-    <!-- NAVE -->
-    <div class="ship">
-      <h3 id="ship-name"></h3>
-
-      <div class="bar-group">
-        <small>Batería</small>
-        <div class="bar battery">
-          <div id="battery-bar"></div>
-          <span id="battery-text"></span>
+      <div class="player">
+        <div class="avatar">🚀</div>
+        <div>
+          <h2 id="player-name">Comandante</h2>
+          <small id="player-location">—</small>
         </div>
       </div>
-    </div>
 
-  </aside>
+      <div class="stats">
+        <div class="stat">
+          <span>Créditos</span>
+          <span id="player-credits">0</span>
+        </div>
+        <button onclick="logout()">Logout</button>
+      </div>
 
-  <!-- MAIN -->
-  <main class="main">
-    <section class="zone">
-      <h2>Objetos disponibles</h2>
-      <div id="objects-container" class="objects"></div>
-    </section>
-  </main>
+      <!-- MOVIMIENTO -->
+      <div class="movement">
+        <h3>Mover nave</h3>
 
-</div>
+        <input type="number" id="move-x" placeholder="X" />
+        <input type="number" id="move-y" placeholder="Y" />
+
+        <button id="move-button" onclick="handleMove()">Mover</button>
+
+        <div id="travel-status"></div>
+        <div id="player-coords"></div>
+      </div>
+
+      <!-- NAVE -->
+      <div class="ship">
+        <h3 id="ship-name"></h3>
+        <div class="bar-group"> <small>Baterías</small>
+          <div class="bar battery">
+            <div id="battery-bar"></div> <span id="battery-text"></span>
+          </div>
+        </div>
+        <div class="bar-group"> <small>Carga</small>
+          <div class="bar cargo">
+            <div id="cargo-bar"></div> <span id="cargo-text"></span>
+          </div>
+        </div>
+        <div class="bar-group"> <small id="defense-label"></small>
+          <div class="bar defense">
+            <div id="defense-bar"></div> <span id="defense-text"></span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <section class="zone">
+        <h2>Objetos disponibles</h2>
+        <div id="objects-container" class="objects"></div>
+      </section>
+    </main>
+
+  </div>
 </body>
+
 </html>
