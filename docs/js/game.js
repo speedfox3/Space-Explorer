@@ -250,7 +250,7 @@ async function checkPlayer() {
     .single();
 
   if (!player) {
-    window.location.href = "createCharacter.html";
+    window.location.href = "create-character.html";
     return;
   }
 

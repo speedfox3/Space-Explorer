@@ -33,6 +33,7 @@ function highlightSelection(activeBtn, selector) {
 
 async function createCharacter() {
   const name = document.getElementById("player-name").value.trim();
+  const shipName = document.getElementById("ship-name").value.trim();
 
   if (!name || !selectedRace || !selectedShip) {
     alert("Completa nombre, raza y nave");
@@ -55,9 +56,9 @@ async function createCharacter() {
   });
 
   const shipStats = {
-    scout: { engine: 5, battery: 3 },
-    freighter: { engine: 2, battery: 6 },
-    explorer: { engine: 4, battery: 4 }
+    scout: { engine: 5, battery: 3, cargo: 2, shield: 2, hull: 3 },
+    freighter: { engine: 2, battery: 6, cargo: 8, shield: 4, hull: 6 },
+    explorer: { engine: 4, battery: 4, cargo: 4, shield: 3, hull: 4 }
   };
 
   await supabaseClient.from("ships").insert({
