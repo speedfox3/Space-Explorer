@@ -1,93 +1,135 @@
-const SYSTEM_OBJECTS = [
-  {
-    id: "planet_mineral",
-    name: "Planeta Ígneo",
-    description: "Rico en minerales",
-    action: "travel",
-    time: 15,
-    energy: 40
-  },
-  {
-    id: "asteroid_belt",
-    name: "Cinturón de Asteroides",
-    description: "Minería básica",
-    action: "explore",
-    time: 8,
-    energy: 20
-  },
-  {
-    id: "abandoned_station",
-    name: "Estación Abandonada",
-    description: "Mini-juego de saqueo",
-    action: "loot",
-    time: 25,
-    energy: 60
-  }
-];
+/**************************************************
+ * INIT
+ **************************************************/
+checkPlayer();
+startEnergyRegen();
 
-function renderSystemObjects(player) {
-  const container = document.getElementById("objects-container");
-  container.innerHTML = "";
+/**************************************************
+ * UTILS
+ **************************************************/
+function distance(a, b) {
+  return Math.sqrt(
+    Math.pow(a.x - b.x, 2) +
+    Math.pow(a.y - b.y, 2)
+  );
+}
 
-  SYSTEM_OBJECTS.forEach(obj => {
-    const disabled = player.energy < obj.energy;
+function canSee(player, object) {
+  return distance(player, object) <= player.radar_range;
+}
 
-    const div = document.createElement("div");
-    div.className = "object";
+function canInteract(player, object) {
+  return distance(player, object) <= 5;
+}
 
-    div.innerHTML = `
-      <h3>${obj.name}</h3>
-      <small>${obj.description}</small>
-      <div class="cost">⏱ ${obj.time} min • ⚡ ${obj.energy} energía</div>
-      <button ${disabled ? "disabled" : ""}>
-        ${disabled ? "Energía insuficiente" : "Interactuar"}
-      </button>
-    `;
+/**************************************************
+ * ENERGY REGEN
+ **************************************************/
+const ENERGY_REGEN_INTERVAL = 10000; // 10s
 
-    if (!disabled) {
-      div.querySelector("button").onclick = () =>
-        startAction(obj, player);
+function startEnergyRegen() {
+  setInterval(async () => {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) return;
+
+    const { data: player } = await supabaseClient
+      .from("players")
+      .select("energy, max_energy")
+      .eq("id", session.user.id)
+      .single();
+
+    if (player.energy < player.max_energy) {
+      await supabaseClient
+        .from("players")
+        .update({ energy: player.energy + 1 })
+        .eq("id", session.user.id);
+
+      updateEnergyBar(player.energy + 1, player.max_energy);
     }
-
-    container.appendChild(div);
-  });
+  }, ENERGY_REGEN_INTERVAL);
 }
 
-
-async function startAction(object, player) {
-  const now = new Date();
-  const busyUntil = new Date(
-    now.getTime() + object.time * 60000
-  );
-
-  // Actualizar jugador
-  await supabaseClient.from("players")
-    .update({
-      energy: player.energy - object.energy,
-      busy_until: busyUntil.toISOString()
-    })
-    .eq("id", player.id);
-
-  alert(
-    `Acción iniciada: ${object.name}\n` +
-    `Duración: ${object.time} minutos`
-  );
-
-  checkPlayer(); // recargar estado
+function updateEnergyBar(current, max) {
+  const pct = (current / max) * 100;
+  document.getElementById("energy-bar").style.width = pct + "%";
+  document.getElementById("energy-text").textContent =
+    `${current} / ${max}`;
 }
 
-
+/**************************************************
+ * GAME STATE
+ **************************************************/
 function updateGameState(player) {
   const now = new Date();
 
   if (player.busy_until && new Date(player.busy_until) > now) {
     renderBusyState(player);
   } else {
-    renderSystemObjects(player);
+    loadAndRenderSystemObjects(player);
   }
 }
 
+/**************************************************
+ * SYSTEM OBJECTS (DINÁMICOS)
+ **************************************************/
+async function loadAndRenderSystemObjects(player) {
+  const container = document.getElementById("objects-container");
+  container.innerHTML = "";
 
+  const { data: objects } = await supabaseClient
+    .from("space_objects")
+    .select("*")
+    .eq("system_id", player.system);
+
+  const visibleObjects = objects.filter(o => canSee(player, o));
+
+  visibleObjects.forEach(obj => {
+    const interactable = canInteract(player, obj);
+
+    const div = document.createElement("div");
+    div.className = "object";
+
+    div.innerHTML = `
+      <h3>${obj.type} (Nivel ${obj.level})</h3>
+      <small>Recursos: ${obj.resources_remaining}</small>
+      <div class="cost">
+        📍 Distancia: ${Math.round(distance(player, obj))}
+      </div>
+      <button ${interactable ? "" : "disabled"}>
+        ${interactable ? "Interactuar" : "Fuera de alcance"}
+      </button>
+    `;
+
+    if (interactable) {
+      div.querySelector("button").onclick = () =>
+        interactWithObject(obj, player);
+    }
+
+    container.appendChild(div);
+  });
+}
+
+/**************************************************
+ * INTERACTION
+ **************************************************/
+async function interactWithObject(object, player) {
+  if (object.resources_remaining <= 0) return;
+
+  await supabaseClient
+    .from("space_objects")
+    .update({
+      resources_remaining: object.resources_remaining - 10
+    })
+    .eq("id", object.id);
+
+  alert("Recolectaste recursos 🚀");
+
+  checkPlayer();
+}
+
+/**************************************************
+ * PLAYER LOAD
+ **************************************************/
 async function checkPlayer() {
   const { data: { session } } = await supabaseClient.auth.getSession();
 
@@ -114,29 +156,70 @@ async function checkPlayer() {
     .single();
 
   renderPlayer(player, ship);
+  updateGameState(player);
 }
 
+/**************************************************
+ * RENDER PLAYER + SHIP
+ **************************************************/
 function renderPlayer(player, ship) {
+  // 👤 Player
   document.getElementById("player-name").textContent = player.name;
   document.getElementById("player-credits").textContent = player.credits;
   document.getElementById("player-location").textContent =
     `Galaxia ${player.galaxy} • Sistema ${player.system}`;
 
+  // 🚀 Ship
   document.getElementById("ship-name").textContent =
     `${ship.name} (${ship.type})`;
 
-  document.getElementById("engine-bar").style.width =
-    (ship.engine_power * 10) + "%";
+  // 🔋 Energía
+  updateEnergyBar(player.energy, player.max_energy);
 
-  document.getElementById("battery-bar").style.width =
-    (ship.battery_capacity * 10) + "%";
+  // 📦 Carga
+  const cargoPct =
+    (ship.cargo_used / ship.cargo_capacity) * 100;
+  document.getElementById("cargo-bar").style.width = cargoPct + "%";
+  document.getElementById("cargo-text").textContent =
+    `${ship.cargo_used} / ${ship.cargo_capacity}`;
 
-  document.getElementById("system-name").textContent =
-    `Sistema ${player.system}`;
+  // 🛡️ Escudos / ❤️ Vida
+  if (ship.shield_max > 0) {
+    const shieldPct =
+      (ship.shield_current / ship.shield_max) * 100;
 
-  document.getElementById("galaxy-name").textContent =
-    `Galaxia ${player.galaxy}`;
+    document.getElementById("defense-label").textContent = "Escudos";
+    document.getElementById("defense-bar").style.width = shieldPct + "%";
+    document.getElementById("defense-text").textContent =
+      `${Math.round(shieldPct)}%`;
+  } else {
+    const hullPct =
+      (ship.hull_current / ship.hull_max) * 100;
+
+    document.getElementById("defense-label").textContent = "Integridad";
+    document.getElementById("defense-bar").style.width = hullPct + "%";
+    document.getElementById("defense-text").textContent =
+      `${Math.round(hullPct)}%`;
+  }
 }
 
-checkPlayer();
-updateGameState(player); // 
+/**************************************************
+ * BUSY STATE
+ **************************************************/
+function renderBusyState(player) {
+  const container = document.getElementById("objects-container");
+  container.innerHTML = `
+    <div class="busy">
+      ⏳ Nave ocupada<br>
+      Disponible en: ${new Date(player.busy_until).toLocaleTimeString()}
+    </div>
+  `;
+}
+
+/**************************************************
+ * LOGOUT
+ **************************************************/
+async function logout() {
+  await supabaseClient.auth.signOut();
+  window.location.href = "login.html";
+}
