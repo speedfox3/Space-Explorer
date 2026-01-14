@@ -46,8 +46,13 @@
         <input type="number" id="move-y" placeholder="Y" />
         <button onclick="handleMove()">Mover</button>
         <div id="player-coords"></div>
-
       </div>
+
+      <div id="travel-status" class="travel-status"></div>
+
+<button id="move-button" onclick="handleMove()">
+  Mover nave
+</button>
 
       <div class="ship">
         <h3 id="ship-name"></h3>
@@ -100,6 +105,12 @@
     </main>
 
   </div>
+
+  <div id="debug-panel" class="debug-panel">
+  <h3>📡 Objetos detectados</h3>
+  <pre id="debug-log"></pre>
+
+</div>
 </body>
 
 </html>

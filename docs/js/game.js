@@ -7,23 +7,33 @@ let currentShip = null;
 /**************************************************
  * CONSTANTS
  **************************************************/
-const BATTERY_REGEN_INTERVAL = 10000; // 10s
+const BATTERY_REGEN_INTERVAL = 10000;
 const BATTERY_COST_PER_UNIT = 0.2;
-const TIME_PER_UNIT = 1000; // ms por unidad
+const TIME_PER_UNIT = 1000;
 
 /**************************************************
  * INIT
  **************************************************/
 checkPlayer();
 
+setInterval(() => {
+  if (!currentPlayer) return;
+
+  if (
+    currentPlayer.busy_until &&
+    new Date(currentPlayer.busy_until) > new Date()
+  ) {
+    renderTravelStatus(currentPlayer);
+  } else {
+    clearTravelStatus();
+  }
+}, 1000);
+
 /**************************************************
  * UTILS
  **************************************************/
 function distance(a, b) {
-  return Math.sqrt(
-    Math.pow(a.x - b.x, 2) +
-    Math.pow(a.y - b.y, 2)
-  );
+  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
 }
 
 function canSee(player, object) {
@@ -71,25 +81,10 @@ function updateBatteryBar(current, max) {
 }
 
 /**************************************************
- * GAME STATE
- **************************************************/
-function updateGameState(player) {
-  const now = new Date();
-
-  if (player.busy_until && new Date(player.busy_until) > now) {
-    renderBusyState(player);
-  } else {
-    loadAndRenderSystemObjects(player);
-  }
-}
-
-/**************************************************
  * SYSTEM OBJECTS
  **************************************************/
 async function loadAndRenderSystemObjects(player) {
   const container = document.getElementById("objects-container");
-  if (!container) return;
-
   container.innerHTML = "";
 
   const { data: objects } = await supabaseClient
@@ -99,31 +94,30 @@ async function loadAndRenderSystemObjects(player) {
 
   if (!objects) return;
 
-  const visible = objects.filter(o => canSee(player, o));
+  objects
+    .filter(o => canSee(player, o))
+    .forEach(obj => {
+      const dist = distance(player, obj);
+      const interactable = canInteract(player, obj);
 
-  visible.forEach(obj => {
-    const dist = distance(player, obj);
-    const interactable = canInteract(player, obj);
+      const div = document.createElement("div");
+      div.className = "object";
+      div.innerHTML = `
+        <h3>${obj.type} (Nivel ${obj.level})</h3>
+        <small>Recursos: ${obj.resources_remaining}</small>
+        <div>📍 Distancia: ${Math.round(dist)}</div>
+        <button ${interactable ? "" : "disabled"}>
+          ${interactable ? "Interactuar" : "Fuera de alcance"}
+        </button>
+      `;
 
-    const div = document.createElement("div");
-    div.className = "object";
+      if (interactable) {
+        div.querySelector("button").onclick = () =>
+          interactWithObject(obj);
+      }
 
-    div.innerHTML = `
-      <h3>${obj.type} (Nivel ${obj.level})</h3>
-      <small>Recursos: ${obj.resources_remaining}</small>
-      <div class="cost">📍 Distancia: ${Math.round(dist)}</div>
-      <button ${interactable ? "" : "disabled"}>
-        ${interactable ? "Interactuar" : "Fuera de alcance"}
-      </button>
-    `;
-
-    if (interactable) {
-      div.querySelector("button").onclick = () =>
-        interactWithObject(obj);
-    }
-
-    container.appendChild(div);
-  });
+      container.appendChild(div);
+    });
 }
 
 /**************************************************
@@ -146,6 +140,18 @@ async function interactWithObject(object) {
 /**************************************************
  * MOVEMENT
  **************************************************/
+async function handleMove() {
+  const x = parseInt(document.getElementById("move-x").value);
+  const y = parseInt(document.getElementById("move-y").value);
+
+  if (isNaN(x) || isNaN(y)) {
+    alert("Coordenadas inválidas");
+    return;
+  }
+
+  moveTo(x, y);
+}
+
 async function moveTo(targetX, targetY) {
   if (!currentPlayer || !currentShip) return;
 
@@ -153,7 +159,7 @@ async function moveTo(targetX, targetY) {
     currentPlayer.busy_until &&
     new Date(currentPlayer.busy_until) > new Date()
   ) {
-    alert("La nave está ocupada");
+    alert("La nave está viajando");
     return;
   }
 
@@ -187,20 +193,28 @@ async function moveTo(targetX, targetY) {
     })
     .eq("id", currentPlayer.id);
 
-  await showTravelModal(dist, travelTime);
   checkPlayer();
 }
 
-function handleMove() {
-  const x = parseInt(document.getElementById("move-x").value);
-  const y = parseInt(document.getElementById("move-y").value);
+/**************************************************
+ * TRAVEL UI
+ **************************************************/
+function renderTravelStatus(player) {
+  const remaining = Math.ceil(
+    (new Date(player.busy_until) - new Date()) / 1000
+  );
 
-  if (isNaN(x) || isNaN(y)) {
-    alert("Coordenadas inválidas");
-    return;
-  }
+  document.getElementById("travel-status").innerHTML = `
+    🚀 Viajando<br>
+    Tiempo restante: ${remaining}s
+  `;
 
-  moveTo(x, y);
+  document.getElementById("move-button").disabled = true;
+}
+
+function clearTravelStatus() {
+  document.getElementById("travel-status").innerHTML = "";
+  document.getElementById("move-button").disabled = false;
 }
 
 /**************************************************
@@ -208,11 +222,7 @@ function handleMove() {
  **************************************************/
 async function checkPlayer() {
   const { data: { session } } = await supabaseClient.auth.getSession();
-
-  if (!session) {
-    window.location.href = "login.html";
-    return;
-  }
+  if (!session) return (window.location.href = "login.html");
 
   const { data: player } = await supabaseClient
     .from("players")
@@ -220,16 +230,11 @@ async function checkPlayer() {
     .eq("id", session.user.id)
     .single();
 
-    
-
-  if (!player) {
-    window.location.href = "createCharacter.html";
-    return;
-  }
+  if (!player) return (window.location.href = "createCharacter.html");
 
   await supabaseClient.rpc("ensure_space_objects", {
-  p_system: player.system
-});
+    p_system: player.system
+  });
 
   const { data: ship } = await supabaseClient
     .from("ships")
@@ -241,7 +246,7 @@ async function checkPlayer() {
   currentShip = ship;
 
   renderPlayer(player, ship);
-  updateGameState(player);
+  loadAndRenderSystemObjects(player);
 
   if (!window.__batteryRegenStarted) {
     startBatteryRegen(ship.id);
@@ -250,7 +255,7 @@ async function checkPlayer() {
 }
 
 /**************************************************
- * RENDER PLAYER + SHIP
+ * RENDER PLAYER
  **************************************************/
 function renderPlayer(player, ship) {
   document.getElementById("player-name").textContent = player.name;
@@ -261,52 +266,10 @@ function renderPlayer(player, ship) {
   document.getElementById("ship-name").textContent =
     `${ship.name} (${ship.type})`;
 
-  updateBatteryBar(
-    ship.battery_current,
-    ship.battery_capacity
-  );
+  updateBatteryBar(ship.battery_current, ship.battery_capacity);
 
-  const coordEl = document.getElementById("player-coords");
-if (coordEl) {
-  coordEl.textContent = `X: ${player.x} | Y: ${player.y}`;
-}
-
-  const cargoPct =
-    (ship.cargo_used / ship.cargo_capacity) * 100;
-  document.getElementById("cargo-bar").style.width = cargoPct + "%";
-  document.getElementById("cargo-text").textContent =
-    `${ship.cargo_used} / ${ship.cargo_capacity}`;
-
-  if (ship.shield_max > 0) {
-    const shieldPct =
-      (ship.shield_current / ship.shield_max) * 100;
-    document.getElementById("defense-label").textContent = "Escudos";
-    document.getElementById("defense-bar").style.width = shieldPct + "%";
-    document.getElementById("defense-text").textContent =
-      `${Math.round(shieldPct)}%`;
-  } else {
-    const hullPct =
-      (ship.hull_current / ship.hull_max) * 100;
-    document.getElementById("defense-label").textContent = "Integridad";
-    document.getElementById("defense-bar").style.width = hullPct + "%";
-    document.getElementById("defense-text").textContent =
-      `${Math.round(hullPct)}%`;
-  }
-}
-
-/**************************************************
- * BUSY STATE
- **************************************************/
-function renderBusyState(player) {
-  const container = document.getElementById("objects-container");
-  if (!container) return;
-
-  container.innerHTML = `
-    <div class="busy">
-      ⏳ Nave ocupada<br>
-      Disponible en: ${new Date(player.busy_until).toLocaleTimeString()}
-    </div>
-  `;
+  document.getElementById("player-coords").textContent =
+    `X: ${player.x} | Y: ${player.y}`;
 }
 
 /**************************************************
@@ -315,47 +278,4 @@ function renderBusyState(player) {
 async function logout() {
   await supabaseClient.auth.signOut();
   window.location.href = "login.html";
-}
-
-
-/**************************************************
- * Mostrar tiempo de viaje
- **************************************************/
-function showTravelModal(dist, travelTimeMs) {
-  return new Promise(resolve => {
-    const modal = document.createElement("div");
-    modal.className = "travel-modal";
-
-    let remaining = Math.ceil(travelTimeMs / 1000);
-
-    modal.innerHTML = `
-      <div class="travel-box">
-        <h3>🚀 Nave en movimiento</h3>
-        <p>Distancia: ${Math.round(dist)}</p>
-        <p id="travel-timer">Tiempo restante: ${remaining}s</p>
-        <button id="travel-ok" disabled>En viaje...</button>
-      </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    const timerEl = modal.querySelector("#travel-timer");
-    const btn = modal.querySelector("#travel-ok");
-
-    const interval = setInterval(() => {
-      remaining--;
-      timerEl.textContent = `Tiempo restante: ${remaining}s`;
-
-      if (remaining <= 0) {
-        clearInterval(interval);
-        btn.disabled = false;
-        btn.textContent = "Llegaste";
-      }
-    }, 1000);
-
-    btn.onclick = () => {
-      modal.remove();
-      resolve();
-    };
-  });
 }
