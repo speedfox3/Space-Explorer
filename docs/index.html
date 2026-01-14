@@ -40,24 +40,33 @@
     </div>
 
     <div class="ship">
-      <h3>Nave actual</h3>
-      <div class="model" id="ship-name">—</div>
+  <h3 id="ship-name"></h3>
 
-      <div class="bars">
-        <div>
-          <small>Motores</small>
-          <div class="bar">
-            <div id="engine-bar"></div>
-          </div>
-        </div>
-        <div>
-          <small>Baterías</small>
-          <div class="bar">
-            <div id="battery-bar"></div>
-          </div>
-        </div>
-      </div>
+  <div class="bar-group">
+    <small>Baterías</small>
+    <div class="bar battery">
+      <div id="battery-bar"></div>
+      <span id="battery-text"></span>
     </div>
+  </div>
+
+  <div class="bar-group">
+    <small>Carga</small>
+    <div class="bar cargo">
+      <div id="cargo-bar"></div>
+      <span id="cargo-text"></span>
+    </div>
+  </div>
+
+  <div class="bar-group">
+    <small id="defense-label"></small>
+    <div class="bar defense">
+      <div id="defense-bar"></div>
+      <span id="defense-text"></span>
+    </div>
+  </div>
+</div>
+
 
   </aside>
 

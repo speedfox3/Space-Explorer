@@ -37,22 +37,6 @@ font-weight: 600;
 }
 
 
-.bars { margin-top: 10px; display: grid; gap: 6px; }
-
-
-.bar {
-height: 8px;
-background: #232a5c;
-border-radius: 999px;
-overflow: hidden;
-}
-
-
-.bar > div {
-height: 100%;
-background: linear-gradient(90deg, #5ee1ff, #7c8cff);
-}
-
 
 .main { padding: 20px; overflow: auto; }
 
@@ -155,6 +139,32 @@ cursor: not-allowed;
   opacity: 1;
 }
 
+
+.bar {
+  position: relative;
+  height: 14px;
+  background: #222;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bar div {
+  height: 100%;
+  transition: width 0.3s;
+}
+
+.bar span {
+  position: absolute;
+  right: 6px;
+  top: -2px;
+  font-size: 10px;
+}
+
+.battery div { background: #00c8ff; }
+.cargo div { background: #f0c000; }
+.defense div { background: #5cff5c; }
+
+.defense.hull div { background: #ff4c4c; }
 
 
 }

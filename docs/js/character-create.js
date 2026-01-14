@@ -61,10 +61,18 @@ async function createCharacter() {
   };
 
   await supabaseClient.from("ships").insert({
-    player_id: session.user.id,
-    type: selectedShip,
-    engine_power: shipStats[selectedShip].engine,
-    battery_capacity: shipStats[selectedShip].battery
+  player_id: session.user.id,
+  name: shipName,
+  type: selectedShip,
+  engine_power: shipStats[selectedShip].engine,
+  battery_capacity: shipStats[selectedShip].battery,
+  cargo_capacity: shipStats[selectedShip].cargo,
+  shield_capacity: shipStats[selectedShip].shield,
+  hull_capacity: shipStats[selectedShip].hull,
+  battery_current: shipStats[selectedShip].battery,
+  shield_current: shipStats[selectedShip].shield,
+  hull_current: shipStats[selectedShip].hull
+
   });
 
   window.location.href = "index.html";
