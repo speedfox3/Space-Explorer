@@ -108,6 +108,14 @@ async function loadAndRenderSystemObjects(player) {
       const div = document.createElement("div");
       div.className = "object";
 
+      console.log(
+  "Jugador:", player.x, player.y,
+  "Radar:", player.radar_range,
+  "Objeto ejemplo:", objects[0].x, objects[0].y,
+  "Distancia:", distance(player, objects[0])
+);
+
+
       div.innerHTML = `
         <h3>${obj.type}</h3>
         <small>Recursos: ${obj.resources_remaining}</small>
