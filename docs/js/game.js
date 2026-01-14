@@ -1,8 +1,16 @@
 /**************************************************
+ * CONSTANTS
+ **************************************************/
+const BATTERY_REGEN_INTERVAL = 10000; // 10 segundos
+
+let currentPlayer = null;
+let currentShip = null;
+let batteryRegenTimer = null;
+
+/**************************************************
  * INIT
  **************************************************/
 checkPlayer();
-startEnergyRegen();
 
 /**************************************************
  * UTILS
@@ -23,37 +31,45 @@ function canInteract(player, object) {
 }
 
 /**************************************************
- * ENERGY REGEN
+ * BATTERY REGEN (SHIP ONLY)
  **************************************************/
-const ENERGY_REGEN_INTERVAL = 10000; // 10s
+function startBatteryRegen(shipId) {
+  if (batteryRegenTimer) return; // evitar duplicados
 
-function startEnergyRegen() {
-  setInterval(async () => {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (!session) return;
-
-    const { data: player } = await supabaseClient
-      .from("players")
-      .select("energy, max_energy")
-      .eq("id", session.user.id)
+  batteryRegenTimer = setInterval(async () => {
+    const { data: ship } = await supabaseClient
+      .from("ships")
+      .select("battery_current, battery_capacity, battery_regen_rate")
+      .eq("id", shipId)
       .single();
 
-    if (player.energy < player.max_energy) {
-      await supabaseClient
-        .from("players")
-        .update({ energy: player.energy + 1 })
-        .eq("id", session.user.id);
+    if (!ship) return;
 
-      updateEnergyBar(player.energy + 1, player.max_energy);
+    if (ship.battery_current < ship.battery_capacity) {
+      const newValue = Math.min(
+        ship.battery_current + ship.battery_regen_rate,
+        ship.battery_capacity
+      );
+
+      await supabaseClient
+        .from("ships")
+        .update({ battery_current: newValue })
+        .eq("id", shipId);
+
+      updateBatteryBar(newValue, ship.battery_capacity);
     }
-  }, ENERGY_REGEN_INTERVAL);
+  }, BATTERY_REGEN_INTERVAL);
 }
 
-function updateEnergyBar(current, max) {
+function updateBatteryBar(current, max) {
+  const bar = document.getElementById("battery-bar");
+  const text = document.getElementById("battery-text");
+
+  if (!bar || !text) return;
+
   const pct = (current / max) * 100;
-  document.getElementById("energy-bar").style.width = pct + "%";
-  document.getElementById("energy-text").textContent =
-    `${current} / ${max}`;
+  bar.style.width = pct + "%";
+  text.textContent = `${Math.round(pct)}%`;
 }
 
 /**************************************************
@@ -81,6 +97,8 @@ async function loadAndRenderSystemObjects(player) {
     .select("*")
     .eq("system_id", player.system);
 
+  if (!objects) return;
+
   const visibleObjects = objects.filter(o => canSee(player, o));
 
   visibleObjects.forEach(obj => {
@@ -102,7 +120,7 @@ async function loadAndRenderSystemObjects(player) {
 
     if (interactable) {
       div.querySelector("button").onclick = () =>
-        interactWithObject(obj, player);
+        interactWithObject(obj);
     }
 
     container.appendChild(div);
@@ -112,7 +130,7 @@ async function loadAndRenderSystemObjects(player) {
 /**************************************************
  * INTERACTION
  **************************************************/
-async function interactWithObject(object, player) {
+async function interactWithObject(object) {
   if (object.resources_remaining <= 0) return;
 
   await supabaseClient
@@ -155,8 +173,13 @@ async function checkPlayer() {
     .eq("player_id", player.id)
     .single();
 
+  currentPlayer = player;
+  currentShip = ship;
+
   renderPlayer(player, ship);
   updateGameState(player);
+
+  startBatteryRegen(ship.id);
 }
 
 /**************************************************
@@ -173,8 +196,8 @@ function renderPlayer(player, ship) {
   document.getElementById("ship-name").textContent =
     `${ship.name} (${ship.type})`;
 
-  // 🔋 Energía
-  updateEnergyBar(player.energy, player.max_energy);
+  // 🔋 Baterías
+  updateBatteryBar(ship.battery_current, ship.battery_capacity);
 
   // 📦 Carga
   const cargoPct =
