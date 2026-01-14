@@ -214,7 +214,6 @@ async function finalizeTravel() {
     })
     .eq("id", currentPlayer.id);
 
-     console.log("moviendo a", target_x , ",", target_y);
 
   await checkPlayer();
   clearTravelStatus();
