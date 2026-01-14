@@ -29,58 +29,20 @@ setInterval(async () => {
     await finalizeTravel();
   } else {
     renderTravelStatus(currentPlayer);
-  }
-}, 1000);
-
-/**************************************************
- * UTILS
+}
+}
+)
+/**************************************************    
+ * LOGOUT
  **************************************************/
-function distance(a, b) {
-  return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+async function logout() {
+  await supabaseClient.auth.signOut();
+  location.href = "login.html";
 }
-
-function canSee(player, object) {
-  return distance(player, object) <= player.radar_range;
-}
-
-function canInteract(player, object) {
-  return distance(player, object) <= 5;
-}
-
-/**************************************************
- * BATTERY REGEN
- **************************************************/
-function startBatteryRegen(shipId) {
-  setInterval(async () => {
-    const { data: ship } = await supabaseClient
-      .from("ships")
-      .select("battery_current, battery_capacity, battery_regen_rate")
-      .eq("id", shipId)
-      .single();
-
-    if (!ship) return;
-
-    if (ship.battery_current < ship.battery_capacity) {
-      const value = Math.min(
-        ship.battery_current + ship.battery_regen_rate,
-        ship.battery_capacity
-      );
-
-      await supabaseClient
-        .from("ships")
-        .update({ battery_current: value })
-        .eq("id", shipId);
-
-      updateBatteryBar(value, ship.battery_capacity);
-    }
-  }, BATTERY_REGEN_INTERVAL);
-}
-
-function updateBatteryBar(current, max) {
   const pct = (current / max) * 100;
   document.getElementById("battery-bar").style.width = pct + "%";
   document.getElementById("battery-text").textContent = `${Math.round(pct)}%`;
-}
+
 
 /**************************************************
  * SYSTEM OBJECTS
@@ -363,52 +325,3 @@ function renderPlayer(player, ship) {
     `X:${player.x} | Y:${player.y}`;
 }
 
-/**************************************************
-  try {
-    console.log("> finalizeTravel: applying arrival (fetching latest player)");
-
-    const { data: latestPlayer, error: fetchErr } = await supabaseClient
-      .from("players")
-      .select("*")
-      .eq("id", currentPlayer.id)
-      .single();
-
-    if (fetchErr) {
-      console.error("finalizeTravel: could not fetch latest player", fetchErr);
-      return;
-    }
-
-    console.log("finalizeTravel: latestPlayer", latestPlayer);
-
-    const res = await supabaseClient.from("players")
-      .update({
-        x: latestPlayer.target_x,
-        y: latestPlayer.target_y,
-        busy_until: null,
-        target_x: null,
-        target_y: null
-      })
-      .eq("id", currentPlayer.id);
-
-    if (res.error) {
-      console.error("finalizeTravel: update failed", res.error);
-      return;
-    }
-
-    console.log("< finalizeTravel: arrival applied", res);
-
-    // confirm DB state
-    const { data: confirmed, error: confErr } = await supabaseClient
-      .from("players")
-      .select("*")
-      .eq("id", currentPlayer.id)
-      .single();
-
-    if (confErr) console.error("finalizeTravel: could not confirm player", confErr);
-    else console.log("finalizeTravel: confirmed player", confirmed);
-
-    await checkPlayer();
-    clearTravelStatus();
-  } catch (e) {
-    console.error("finalizeTravel: unexpected error", e);
-  }
