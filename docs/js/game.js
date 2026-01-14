@@ -33,7 +33,8 @@ setInterval(async () => {
   const pct = (current / max) * 100;
   document.getElementById("battery-bar").style.width = pct + "%";
   document.getElementById("battery-text").textContent = `${Math.round(pct)}%`;
-
+}
+)
 
 /**************************************************
  * SYSTEM OBJECTS
