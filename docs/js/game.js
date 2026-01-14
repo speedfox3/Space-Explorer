@@ -162,7 +162,6 @@ async function handleMove() {
   moveTo(x, y);
 
 }
-console.log("moviendo de", x , ",", y);
 async function moveTo(targetX, targetY) {
   if (currentPlayer.busy_until) {
     alert("La nave está viajando");
