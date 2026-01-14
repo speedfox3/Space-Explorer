@@ -179,17 +179,31 @@ async function moveTo(targetX, targetY) {
   const travelTime = dist * TIME_PER_UNIT;
   const busyUntil = new Date(Date.now() + travelTime).toISOString();
 
-  await supabaseClient.from("ships")
+  console.log("> moveTo: updating DB", { shipId: currentShip.id, playerId: currentPlayer.id, cost, targetX, targetY, busyUntil });
+
+  const shipRes = await supabaseClient.from("ships")
     .update({ battery_current: currentShip.battery_current - cost })
     .eq("id", currentShip.id);
+  if (shipRes.error) {
+    console.error("moveTo: failed updating ship battery", shipRes.error);
+    alert("Error updating ship battery. Check console.");
+    return;
+  }
 
-  await supabaseClient.from("players")
+  const playerRes = await supabaseClient.from("players")
     .update({
       target_x: targetX,
       target_y: targetY,
       busy_until: busyUntil
     })
     .eq("id", currentPlayer.id);
+  if (playerRes.error) {
+    console.error("moveTo: failed updating player travel info", playerRes.error);
+    alert("Error starting travel. Check console.");
+    return;
+  }
+
+  console.log("< moveTo: DB updated", { shipRes, playerRes });
 
   currentPlayer.busy_until = busyUntil;
   currentPlayer.target_x = targetX;
@@ -200,18 +214,29 @@ async function moveTo(targetX, targetY) {
  * TRAVEL FINALIZE
  **************************************************/
 async function finalizeTravel() {
-  await supabaseClient.from("players")
-    .update({
-      x: currentPlayer.target_x,
-      y: currentPlayer.target_y,
-      busy_until: null,
-      target_x: null,
-      target_y: null
-    })
-    .eq("id", currentPlayer.id);
+  try {
+    console.log("> finalizeTravel: applying arrival", { playerId: currentPlayer.id, target_x: currentPlayer.target_x, target_y: currentPlayer.target_y });
+    const res = await supabaseClient.from("players")
+      .update({
+        x: currentPlayer.target_x,
+        y: currentPlayer.target_y,
+        busy_until: null,
+        target_x: null,
+        target_y: null
+      })
+      .eq("id", currentPlayer.id);
 
-  await checkPlayer();
-  clearTravelStatus();
+    if (res.error) {
+      console.error("finalizeTravel: update failed", res.error);
+      return;
+    }
+
+    console.log("< finalizeTravel: arrival applied", res);
+    await checkPlayer();
+    clearTravelStatus();
+  } catch (e) {
+    console.error("finalizeTravel: unexpected error", e);
+  }
 }
 
 /**************************************************
