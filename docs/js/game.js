@@ -262,7 +262,8 @@ if (error) { console.error("Error actualizando player al finalizar viaje:", erro
 
 console.log("Player actualizado tras viaje:", updated);
 
-// volver a cargar estado real return checkPlayer(); }
+// volver a cargar estado real 
+return checkPlayer(); }
 
   const { data: ship } = await supabaseClient
     .from("ships")
@@ -309,4 +310,5 @@ async function logout() {
   await supabaseClient.auth.signOut();
   location.href = "login.html";
 }
+
 
