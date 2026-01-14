@@ -228,7 +228,6 @@ async function checkPlayer() {
   }
 
   await supabaseClient.rpc("ensure_space_objects", {
-  p_galaxy: player.galaxy,
   p_system: player.system
 });
 
