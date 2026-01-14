@@ -109,12 +109,12 @@ async function loadAndRenderSystemObjects(player) {
       const div = document.createElement("div");
       div.className = "object";
 
-      console.log(
+  /*  console.log(
   "Jugador:", player.x, player.y,
   "Radar:", player.radar_range,
   "Objeto ejemplo:", objects[0].x, objects[0].y,
   "Distancia:", distance(player, objects[0])
-);
+); */
 
 
       div.innerHTML = `
@@ -160,6 +160,7 @@ async function handleMove() {
 
   if (isNaN(x) || isNaN(y)) return alert("Coordenadas inválidas");
   moveTo(x, y);
+  console.log("moviendo de", x , ",", y);
 }
 
 async function moveTo(targetX, targetY) {
@@ -167,6 +168,9 @@ async function moveTo(targetX, targetY) {
     alert("La nave está viajando");
     return;
   }
+
+  console.log("moviendo a", targetX , ",", targetY);
+  console.log("moviendo a", target_x , ",", target_y);
 
   const dist = distance(currentPlayer, { x: targetX, y: targetY });
   const cost = Math.ceil(dist * BATTERY_COST_PER_UNIT);
@@ -202,8 +206,8 @@ async function moveTo(targetX, targetY) {
 async function finalizeTravel() {
   await supabaseClient.from("players")
     .update({
-      x: currentPlayer.target_x,
-      y: currentPlayer.target_y,
+      x: currentPlayer.targetX,
+      y: currentPlayer.targetY,
       busy_until: null,
       target_x: null,
       target_y: null
@@ -254,7 +258,7 @@ async function checkPlayer() {
     return;
   }
 
-// ⏱️ ¿Llegó a destino? if ( player.busy_until && new Date(player.busy_until) <= new Date() && player.target_x !== null ) { console.log("🛬 Viaje finalizado — finalizando en DB", { playerId: player.id, target_x: player.target_x, target_y: player.target_y, busy_until: player.busy_until });
+// ⏱️ ¿Llegó a destino? if ( player.busy_until && new Date(player.busy_until) <= new Date() && player.target_x !== null ) { g("🛬 Viaje finalizado — finalizando en DB", { playerId: player.id, target_x: player.target_x, target_y: player.target_y, busy_until: player.busy_until }console.lo);
 
 const { data: updated, error } = await supabaseClient .from("players") .update({ x: player.target_x, y: player.target_y, busy_until: null, target_x: null, target_y: null }) .eq("id", player.id) .select() .maybeSingle();
 
@@ -282,8 +286,6 @@ return checkPlayer(); }
     window.__batteryRegenStarted = true;
   }
 }
-
-
 
 /**************************************************
  * RENDER PLAYER
