@@ -22,3 +22,11 @@ async function checkPlayer() {
 
 checkPlayer();
 
+function logout() {
+  supabaseClient.auth.signOut().then(() => {
+    window.location.href = "login.html";
+  });
+}
+
+
+
