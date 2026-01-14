@@ -1,11 +1,15 @@
 /**************************************************
- * CONSTANTS
+ * GLOBAL STATE
  **************************************************/
-const BATTERY_REGEN_INTERVAL = 10000; // 10 segundos
-
 let currentPlayer = null;
 let currentShip = null;
-let batteryRegenTimer = null;
+
+/**************************************************
+ * CONSTANTS
+ **************************************************/
+const BATTERY_REGEN_INTERVAL = 10000; // 10s
+const BATTERY_COST_PER_UNIT = 0.2;
+const TIME_PER_UNIT = 1000; // ms por unidad
 
 /**************************************************
  * INIT
@@ -31,12 +35,10 @@ function canInteract(player, object) {
 }
 
 /**************************************************
- * BATTERY REGEN (SHIP ONLY)
+ * BATTERY REGEN
  **************************************************/
 function startBatteryRegen(shipId) {
-  if (batteryRegenTimer) return; // evitar duplicados
-
-  batteryRegenTimer = setInterval(async () => {
+  setInterval(async () => {
     const { data: ship } = await supabaseClient
       .from("ships")
       .select("battery_current, battery_capacity, battery_regen_rate")
@@ -62,14 +64,10 @@ function startBatteryRegen(shipId) {
 }
 
 function updateBatteryBar(current, max) {
-  const bar = document.getElementById("battery-bar");
-  const text = document.getElementById("battery-text");
-
-  if (!bar || !text) return;
-
   const pct = (current / max) * 100;
-  bar.style.width = pct + "%";
-  text.textContent = `${Math.round(pct)}%`;
+  document.getElementById("battery-bar").style.width = pct + "%";
+  document.getElementById("battery-text").textContent =
+    `${Math.round(pct)}%`;
 }
 
 /**************************************************
@@ -86,10 +84,12 @@ function updateGameState(player) {
 }
 
 /**************************************************
- * SYSTEM OBJECTS (DINÁMICOS)
+ * SYSTEM OBJECTS
  **************************************************/
 async function loadAndRenderSystemObjects(player) {
   const container = document.getElementById("objects-container");
+  if (!container) return;
+
   container.innerHTML = "";
 
   const { data: objects } = await supabaseClient
@@ -99,9 +99,10 @@ async function loadAndRenderSystemObjects(player) {
 
   if (!objects) return;
 
-  const visibleObjects = objects.filter(o => canSee(player, o));
+  const visible = objects.filter(o => canSee(player, o));
 
-  visibleObjects.forEach(obj => {
+  visible.forEach(obj => {
+    const dist = distance(player, obj);
     const interactable = canInteract(player, obj);
 
     const div = document.createElement("div");
@@ -110,9 +111,7 @@ async function loadAndRenderSystemObjects(player) {
     div.innerHTML = `
       <h3>${obj.type} (Nivel ${obj.level})</h3>
       <small>Recursos: ${obj.resources_remaining}</small>
-      <div class="cost">
-        📍 Distancia: ${Math.round(distance(player, obj))}
-      </div>
+      <div class="cost">📍 Distancia: ${Math.round(dist)}</div>
       <button ${interactable ? "" : "disabled"}>
         ${interactable ? "Interactuar" : "Fuera de alcance"}
       </button>
@@ -141,8 +140,70 @@ async function interactWithObject(object) {
     .eq("id", object.id);
 
   alert("Recolectaste recursos 🚀");
+  checkPlayer();
+}
+
+/**************************************************
+ * MOVEMENT
+ **************************************************/
+async function moveTo(targetX, targetY) {
+  if (!currentPlayer || !currentShip) return;
+
+  if (
+    currentPlayer.busy_until &&
+    new Date(currentPlayer.busy_until) > new Date()
+  ) {
+    alert("La nave está ocupada");
+    return;
+  }
+
+  const from = { x: currentPlayer.x, y: currentPlayer.y };
+  const to = { x: targetX, y: targetY };
+
+  const dist = distance(from, to);
+  const batteryCost = Math.ceil(dist * BATTERY_COST_PER_UNIT);
+
+  if (currentShip.battery_current < batteryCost) {
+    alert("Batería insuficiente");
+    return;
+  }
+
+  const travelTime = dist * TIME_PER_UNIT;
+  const busyUntil = new Date(Date.now() + travelTime);
+
+  await supabaseClient
+    .from("ships")
+    .update({
+      battery_current: currentShip.battery_current - batteryCost
+    })
+    .eq("id", currentShip.id);
+
+  await supabaseClient
+    .from("players")
+    .update({
+      x: targetX,
+      y: targetY,
+      busy_until: busyUntil.toISOString()
+    })
+    .eq("id", currentPlayer.id);
+
+  alert(
+    `🚀 Nave en movimiento\nDistancia: ${Math.round(dist)}`
+  );
 
   checkPlayer();
+}
+
+function handleMove() {
+  const x = parseInt(document.getElementById("move-x").value);
+  const y = parseInt(document.getElementById("move-y").value);
+
+  if (isNaN(x) || isNaN(y)) {
+    alert("Coordenadas inválidas");
+    return;
+  }
+
+  moveTo(x, y);
 }
 
 /**************************************************
@@ -179,38 +240,38 @@ async function checkPlayer() {
   renderPlayer(player, ship);
   updateGameState(player);
 
-  startBatteryRegen(ship.id);
+  if (!window.__batteryRegenStarted) {
+    startBatteryRegen(ship.id);
+    window.__batteryRegenStarted = true;
+  }
 }
 
 /**************************************************
  * RENDER PLAYER + SHIP
  **************************************************/
 function renderPlayer(player, ship) {
-  // 👤 Player
   document.getElementById("player-name").textContent = player.name;
   document.getElementById("player-credits").textContent = player.credits;
   document.getElementById("player-location").textContent =
     `Galaxia ${player.galaxy} • Sistema ${player.system}`;
 
-  // 🚀 Ship
   document.getElementById("ship-name").textContent =
     `${ship.name} (${ship.type})`;
 
-  // 🔋 Baterías
-  updateBatteryBar(ship.battery_current, ship.battery_capacity);
+  updateBatteryBar(
+    ship.battery_current,
+    ship.battery_capacity
+  );
 
-  // 📦 Carga
   const cargoPct =
     (ship.cargo_used / ship.cargo_capacity) * 100;
   document.getElementById("cargo-bar").style.width = cargoPct + "%";
   document.getElementById("cargo-text").textContent =
     `${ship.cargo_used} / ${ship.cargo_capacity}`;
 
-  // 🛡️ Escudos / ❤️ Vida
   if (ship.shield_max > 0) {
     const shieldPct =
       (ship.shield_current / ship.shield_max) * 100;
-
     document.getElementById("defense-label").textContent = "Escudos";
     document.getElementById("defense-bar").style.width = shieldPct + "%";
     document.getElementById("defense-text").textContent =
@@ -218,7 +279,6 @@ function renderPlayer(player, ship) {
   } else {
     const hullPct =
       (ship.hull_current / ship.hull_max) * 100;
-
     document.getElementById("defense-label").textContent = "Integridad";
     document.getElementById("defense-bar").style.width = hullPct + "%";
     document.getElementById("defense-text").textContent =
@@ -231,6 +291,8 @@ function renderPlayer(player, ship) {
  **************************************************/
 function renderBusyState(player) {
   const container = document.getElementById("objects-container");
+  if (!container) return;
+
   container.innerHTML = `
     <div class="busy">
       ⏳ Nave ocupada<br>

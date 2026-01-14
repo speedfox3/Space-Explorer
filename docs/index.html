@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <title>Space Explorer</title>
@@ -14,84 +15,89 @@
 </head>
 
 <body>
-<div class="app">
+  <div class="app">
 
-  <!-- PANEL FIJO -->
-  <aside class="sidebar">
+    <!-- PANEL FIJO -->
+    <aside class="sidebar">
 
-    <div class="player">
-      <div class="avatar">🚀</div>
-      <div>
-        <h2 id="player-name">Comandante</h2>
-        <small id="player-location">—</small>
+      <div class="player">
+        <div class="avatar">🚀</div>
+        <div>
+          <h2 id="player-name">Comandante</h2>
+          <small id="player-location">—</small>
+        </div>
       </div>
-    </div>
 
-    <div class="stats">
-      <div class="stat">
-        <span>Créditos</span>
-        <span id="player-credits">0</span>
+      <div class="stats">
+        <div class="stat">
+          <span>Créditos</span>
+          <span id="player-credits">0</span>
+        </div>
+        <div class="stat">
+          <span>Energía</span>
+          <span id="player-energy">—</span>
+        </div>
+        <button onclick="logout()">Logout</button>
       </div>
-      <div class="stat">
-        <span>Energía</span>
-        <span id="player-energy">—</span>
+
+      <div class="movement">
+        <h3>Mover nave</h3>
+        <input type="number" id="move-x" placeholder="X" />
+        <input type="number" id="move-y" placeholder="Y" />
+        <button onclick="handleMove()">Mover</button>
       </div>
-      <button onclick="logout()">Logout</button>
-    </div>
 
-    <div class="ship">
-  <h3 id="ship-name"></h3>
+      <div class="ship">
+        <h3 id="ship-name"></h3>
 
-  <div class="bar-group">
-    <small>Baterías</small>
-    <div class="bar battery">
-      <div id="battery-bar"></div>
-      <span id="battery-text"></span>
-    </div>
+        <div class="bar-group">
+          <small>Baterías</small>
+          <div class="bar battery">
+            <div id="battery-bar"></div>
+            <span id="battery-text"></span>
+          </div>
+        </div>
+
+        <div class="bar-group">
+          <small>Carga</small>
+          <div class="bar cargo">
+            <div id="cargo-bar"></div>
+            <span id="cargo-text"></span>
+          </div>
+        </div>
+
+        <div class="bar-group">
+          <small id="defense-label"></small>
+          <div class="bar defense">
+            <div id="defense-bar"></div>
+            <span id="defense-text"></span>
+          </div>
+        </div>
+      </div>
+
+
+    </aside>
+
+    <!-- ZONA DINÁMICA -->
+    <main class="main">
+
+      <div class="location">
+        <div>
+          <h1 id="system-name">Sistema</h1>
+          <small id="galaxy-name">Galaxia</small>
+        </div>
+      </div>
+
+      <section class="zone">
+        <h2>Objetos disponibles</h2>
+        <div class="objects" id="objects-container">
+          <!-- Se llena por JS -->
+        </div>
+      </section>
+
+    </main>
+
   </div>
-
-  <div class="bar-group">
-    <small>Carga</small>
-    <div class="bar cargo">
-      <div id="cargo-bar"></div>
-      <span id="cargo-text"></span>
-    </div>
-  </div>
-
-  <div class="bar-group">
-    <small id="defense-label"></small>
-    <div class="bar defense">
-      <div id="defense-bar"></div>
-      <span id="defense-text"></span>
-    </div>
-  </div>
-</div>
-
-
-  </aside>
-
-  <!-- ZONA DINÁMICA -->
-  <main class="main">
-
-    <div class="location">
-      <div>
-        <h1 id="system-name">Sistema</h1>
-        <small id="galaxy-name">Galaxia</small>
-      </div>
-    </div>
-
-    <section class="zone">
-      <h2>Objetos disponibles</h2>
-      <div class="objects" id="objects-container">
-        <!-- Se llena por JS -->
-      </div>
-    </section>
-
-  </main>
-
-</div>
 </body>
+
 </html>
-
-
-
