@@ -16,16 +16,19 @@ const TIME_PER_UNIT = 1000;
  **************************************************/
 checkPlayer();
 
-setInterval(() => {
-  if (!currentPlayer) return;
+/**************************************************
+ * TRAVEL TIMER
+ **************************************************/
+setInterval(async () => {
+  if (!currentPlayer || !currentPlayer.busy_until) return;
 
-  if (
-    currentPlayer.busy_until &&
-    new Date(currentPlayer.busy_until) > new Date()
-  ) {
-    renderTravelStatus(currentPlayer);
+  const now = new Date();
+  const end = new Date(currentPlayer.busy_until);
+
+  if (now >= end) {
+    await finalizeTravel();
   } else {
-    clearTravelStatus();
+    renderTravelStatus(currentPlayer);
   }
 }, 1000);
 
@@ -58,17 +61,17 @@ function startBatteryRegen(shipId) {
     if (!ship) return;
 
     if (ship.battery_current < ship.battery_capacity) {
-      const newValue = Math.min(
+      const value = Math.min(
         ship.battery_current + ship.battery_regen_rate,
         ship.battery_capacity
       );
 
       await supabaseClient
         .from("ships")
-        .update({ battery_current: newValue })
+        .update({ battery_current: value })
         .eq("id", shipId);
 
-      updateBatteryBar(newValue, ship.battery_capacity);
+      updateBatteryBar(value, ship.battery_capacity);
     }
   }, BATTERY_REGEN_INTERVAL);
 }
@@ -76,8 +79,7 @@ function startBatteryRegen(shipId) {
 function updateBatteryBar(current, max) {
   const pct = (current / max) * 100;
   document.getElementById("battery-bar").style.width = pct + "%";
-  document.getElementById("battery-text").textContent =
-    `${Math.round(pct)}%`;
+  document.getElementById("battery-text").textContent = `${Math.round(pct)}%`;
 }
 
 /**************************************************
@@ -85,57 +87,43 @@ function updateBatteryBar(current, max) {
  **************************************************/
 async function loadAndRenderSystemObjects(player) {
   const container = document.getElementById("objects-container");
-  if (!container) return;
-
   container.innerHTML = "";
 
-  const { data: objects, error } = await supabaseClient
+  const { data: objects } = await supabaseClient
     .from("space_objects")
     .select("*")
     .eq("system_id", player.system);
-
-  if (error) {
-    console.error("Error cargando objetos:", error);
-    return;
-  }
 
   if (!objects || objects.length === 0) {
     container.innerHTML = "<p>No hay objetos en este sistema</p>";
     return;
   }
 
-  const debug = document.getElementById("debug-log");
-  if (debug) {
-    debug.textContent = JSON.stringify(objects, null, 2);
-  }
+  objects
+    .filter(o => canSee(player, o))
+    .forEach(obj => {
+      const dist = distance(player, obj);
+      const interactable = canInteract(player, obj);
 
-  const visible = objects.filter(o => canSee(player, o));
+      const div = document.createElement("div");
+      div.className = "object";
 
-  visible.forEach(obj => {
-    const dist = distance(player, obj);
-    const interactable = canInteract(player, obj);
+      div.innerHTML = `
+        <h3>${obj.type}</h3>
+        <small>Recursos: ${obj.resources_remaining}</small>
+        <div>📍 Distancia: ${Math.round(dist)}</div>
+        <button ${interactable ? "" : "disabled"}>
+          ${interactable ? "Interactuar" : "Fuera de alcance"}
+        </button>
+      `;
 
-    const div = document.createElement("div");
-    div.className = "object";
+      if (interactable) {
+        div.querySelector("button").onclick = () => interactWithObject(obj);
+      }
 
-    div.innerHTML = `
-      <h3>${obj.type} (Nivel ${obj.level})</h3>
-      <small>Recursos: ${obj.resources_remaining}</small>
-      <div class="cost">📍 Distancia: ${Math.round(dist)}</div>
-      <button ${interactable ? "" : "disabled"}>
-        ${interactable ? "Interactuar" : "Fuera de alcance"}
-      </button>
-    `;
-
-    if (interactable) {
-      div.querySelector("button").onclick = () =>
-        interactWithObject(obj);
-    }
-
-    container.appendChild(div);
-  });
+      container.appendChild(div);
+    });
 }
-
 
 /**************************************************
  * INTERACTION
@@ -161,56 +149,60 @@ async function handleMove() {
   const x = parseInt(document.getElementById("move-x").value);
   const y = parseInt(document.getElementById("move-y").value);
 
-  if (isNaN(x) || isNaN(y)) {
-    alert("Coordenadas inválidas");
-    return;
-  }
-
+  if (isNaN(x) || isNaN(y)) return alert("Coordenadas inválidas");
   moveTo(x, y);
 }
 
 async function moveTo(targetX, targetY) {
-  if (!currentPlayer || !currentShip) return;
-
-  if (
-    currentPlayer.busy_until &&
-    new Date(currentPlayer.busy_until) > new Date()
-  ) {
+  if (currentPlayer.busy_until) {
     alert("La nave está viajando");
     return;
   }
 
-  const from = { x: currentPlayer.x, y: currentPlayer.y };
-  const to = { x: targetX, y: targetY };
+  const dist = distance(currentPlayer, { x: targetX, y: targetY });
+  const cost = Math.ceil(dist * BATTERY_COST_PER_UNIT);
 
-  const dist = distance(from, to);
-  const batteryCost = Math.ceil(dist * BATTERY_COST_PER_UNIT);
-
-  if (currentShip.battery_current < batteryCost) {
+  if (currentShip.battery_current < cost) {
     alert("Batería insuficiente");
     return;
   }
 
   const travelTime = dist * TIME_PER_UNIT;
-  const busyUntil = new Date(Date.now() + travelTime);
+  const busyUntil = new Date(Date.now() + travelTime).toISOString();
 
-  await supabaseClient
-    .from("ships")
-    .update({
-      battery_current: currentShip.battery_current - batteryCost
-    })
+  await supabaseClient.from("ships")
+    .update({ battery_current: currentShip.battery_current - cost })
     .eq("id", currentShip.id);
 
-  await supabaseClient
-    .from("players")
+  await supabaseClient.from("players")
     .update({
-      x: targetX,
-      y: targetY,
-      busy_until: busyUntil.toISOString()
+      target_x: targetX,
+      target_y: targetY,
+      busy_until: busyUntil
     })
     .eq("id", currentPlayer.id);
 
-  checkPlayer();
+  currentPlayer.busy_until = busyUntil;
+  currentPlayer.target_x = targetX;
+  currentPlayer.target_y = targetY;
+}
+
+/**************************************************
+ * TRAVEL FINALIZE
+ **************************************************/
+async function finalizeTravel() {
+  await supabaseClient.from("players")
+    .update({
+      x: currentPlayer.target_x,
+      y: currentPlayer.target_y,
+      busy_until: null,
+      target_x: null,
+      target_y: null
+    })
+    .eq("id", currentPlayer.id);
+
+  await checkPlayer();
+  clearTravelStatus();
 }
 
 /**************************************************
@@ -221,10 +213,8 @@ function renderTravelStatus(player) {
     (new Date(player.busy_until) - new Date()) / 1000
   );
 
-  document.getElementById("travel-status").innerHTML = `
-    🚀 Viajando<br>
-    Tiempo restante: ${remaining}s
-  `;
+  document.getElementById("travel-status").innerHTML =
+    `🚀 Viajando — ${remaining}s`;
 
   document.getElementById("move-button").disabled = true;
 }
@@ -239,19 +229,13 @@ function clearTravelStatus() {
  **************************************************/
 async function checkPlayer() {
   const { data: { session } } = await supabaseClient.auth.getSession();
-  if (!session) return (window.location.href = "login.html");
+  if (!session) return location.href = "login.html";
 
   const { data: player } = await supabaseClient
     .from("players")
     .select("*")
     .eq("id", session.user.id)
     .single();
-
-  if (!player) return (window.location.href = "createCharacter.html");
-
-  await supabaseClient.rpc("ensure_space_objects", {
-    p_system: player.system
-  });
 
   const { data: ship } = await supabaseClient
     .from("ships")
@@ -278,7 +262,7 @@ function renderPlayer(player, ship) {
   document.getElementById("player-name").textContent = player.name;
   document.getElementById("player-credits").textContent = player.credits;
   document.getElementById("player-location").textContent =
-    `Galaxia ${player.galaxy} • Sistema ${player.system}`;
+    `Sistema ${player.system}`;
 
   document.getElementById("ship-name").textContent =
     `${ship.name} (${ship.type})`;
@@ -286,7 +270,7 @@ function renderPlayer(player, ship) {
   updateBatteryBar(ship.battery_current, ship.battery_capacity);
 
   document.getElementById("player-coords").textContent =
-    `X: ${player.x} | Y: ${player.y}`;
+    `X:${player.x} | Y:${player.y}`;
 }
 
 /**************************************************
@@ -294,5 +278,5 @@ function renderPlayer(player, ship) {
  **************************************************/
 async function logout() {
   await supabaseClient.auth.signOut();
-  window.location.href = "login.html";
+  location.href = "login.html";
 }
