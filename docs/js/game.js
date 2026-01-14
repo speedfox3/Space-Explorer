@@ -30,15 +30,6 @@ setInterval(async () => {
   } else {
     renderTravelStatus(currentPlayer);
 }
-}
-)
-/**************************************************    
- * LOGOUT
- **************************************************/
-async function logout() {
-  await supabaseClient.auth.signOut();
-  location.href = "login.html";
-}
   const pct = (current / max) * 100;
   document.getElementById("battery-bar").style.width = pct + "%";
   document.getElementById("battery-text").textContent = `${Math.round(pct)}%`;
@@ -325,3 +316,10 @@ function renderPlayer(player, ship) {
     `X:${player.x} | Y:${player.y}`;
 }
 
+/**************************************************    
+ * LOGOUT
+ **************************************************/
+async function logout() {
+  await supabaseClient.auth.signOut();
+  location.href = "login.html";
+}
