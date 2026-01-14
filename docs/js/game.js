@@ -187,10 +187,7 @@ async function moveTo(targetX, targetY) {
     })
     .eq("id", currentPlayer.id);
 
-  alert(
-    `🚀 Nave en movimiento\nDistancia: ${Math.round(dist)}`
-  );
-
+  await showTravelModal(dist, travelTime);
   checkPlayer();
 }
 
@@ -223,10 +220,17 @@ async function checkPlayer() {
     .eq("id", session.user.id)
     .single();
 
+    
+
   if (!player) {
     window.location.href = "createCharacter.html";
     return;
   }
+
+  await supabaseClient.rpc("ensure_space_objects", {
+  p_galaxy: player.galaxy,
+  p_system: player.system
+});
 
   const { data: ship } = await supabaseClient
     .from("ships")
@@ -262,6 +266,11 @@ function renderPlayer(player, ship) {
     ship.battery_current,
     ship.battery_capacity
   );
+
+  const coordEl = document.getElementById("player-coords");
+if (coordEl) {
+  coordEl.textContent = `X: ${player.x} | Y: ${player.y}`;
+}
 
   const cargoPct =
     (ship.cargo_used / ship.cargo_capacity) * 100;
@@ -307,4 +316,47 @@ function renderBusyState(player) {
 async function logout() {
   await supabaseClient.auth.signOut();
   window.location.href = "login.html";
+}
+
+
+/**************************************************
+ * Mostrar tiempo de viaje
+ **************************************************/
+function showTravelModal(dist, travelTimeMs) {
+  return new Promise(resolve => {
+    const modal = document.createElement("div");
+    modal.className = "travel-modal";
+
+    let remaining = Math.ceil(travelTimeMs / 1000);
+
+    modal.innerHTML = `
+      <div class="travel-box">
+        <h3>🚀 Nave en movimiento</h3>
+        <p>Distancia: ${Math.round(dist)}</p>
+        <p id="travel-timer">Tiempo restante: ${remaining}s</p>
+        <button id="travel-ok" disabled>En viaje...</button>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const timerEl = modal.querySelector("#travel-timer");
+    const btn = modal.querySelector("#travel-ok");
+
+    const interval = setInterval(() => {
+      remaining--;
+      timerEl.textContent = `Tiempo restante: ${remaining}s`;
+
+      if (remaining <= 0) {
+        clearInterval(interval);
+        btn.disabled = false;
+        btn.textContent = "Llegaste";
+      }
+    }, 1000);
+
+    btn.onclick = () => {
+      modal.remove();
+      resolve();
+    };
+  });
 }
