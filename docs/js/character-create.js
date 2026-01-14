@@ -62,7 +62,7 @@ async function createCharacter() {
 
   await supabaseClient.from("ships").insert({
   player_id: session.user.id,
-  name: shipName,
+  name: ship_name,
   type: selectedShip,
   engine_power: shipStats[selectedShip].engine,
   battery_capacity: shipStats[selectedShip].battery,

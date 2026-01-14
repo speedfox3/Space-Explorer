@@ -299,7 +299,7 @@ function renderPlayer(player, ship) {
     `Sistema ${player.system}`;
 
   document.getElementById("ship-name").textContent =
-    `${ship.name} (${ship.type})`;
+    `${ship.ship_name} (${ship.type})`;
 
   updateBatteryBar(ship.battery_current, ship.battery_capacity);
 
