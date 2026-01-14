@@ -170,7 +170,6 @@ async function moveTo(targetX, targetY) {
   }
 
   console.log("moviendo a", targetX , ",", targetY);
-  console.log("moviendo a", target_x , ",", target_y);
 
   const dist = distance(currentPlayer, { x: targetX, y: targetY });
   const cost = Math.ceil(dist * BATTERY_COST_PER_UNIT);
