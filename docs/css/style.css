@@ -1,0 +1,189 @@
+:root {
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-image: url("../assets/background/fondo1.jpg");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+
+  color: #e0e0e0;
+  font-family: system-ui, sans-serif;
+}    
+
+.ship {
+padding: 12px;
+background: rgba(255,255,255,0.04);
+border-radius: 12px;
+}
+
+.options button.selected {
+  border: 2px solid #00e0ff;
+  background: rgba(0, 224, 255, 0.15);
+}
+
+.ship h3 {
+margin: 0 0 8px 0;
+font-size: 14px;
+color: var(--muted);
+}
+
+
+.ship .model {
+font-size: 16px;
+font-weight: 600;
+}
+
+
+
+.main { padding: 20px; overflow: auto; }
+
+
+.location { display: flex; justify-content: space-between; margin-bottom: 20px; }
+
+
+.zone {
+background: rgba(255,255,255,0.04);
+border-radius: 16px;
+padding: 16px;
+}
+
+
+.objects {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+gap: 14px;
+}
+
+
+.object {
+background: linear-gradient(180deg, #1a214a, #12183b);
+border: 1px solid #232a5c;
+border-radius: 14px;
+padding: 14px;
+display: grid;
+gap: 8px;
+}
+
+
+.object button {
+margin-top: 8px;
+background: linear-gradient(135deg, #5ee1ff, #7c8cff);
+color: #081018;
+border: none;
+border-radius: 10px;
+padding: 8px 10px;
+font-weight: 600;
+cursor: pointer;
+}
+
+
+.object button:disabled {
+opacity: 0.4;
+cursor: not-allowed;
+}
+
+.options button {
+  position: relative;
+  cursor: pointer;
+}
+
+/* Tooltip */
+.options button::after {
+  content: attr(data-tooltip);
+  white-space: pre-line;
+
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+
+  background: rgba(10, 20, 40, 0.95);
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 8px;
+
+  font-size: 0.85rem;
+  text-align: left;
+  min-width: 180px;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+
+  box-shadow: 0 0 12px rgba(0, 224, 255, 0.3);
+  z-index: 10;
+}
+
+
+.debug-panel {
+  position: fixed;
+  right: 10px;
+  bottom: 10px;
+  width: 300px;
+  max-height: 40vh;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.85);
+  color: #0f0;
+  font-family: monospace;
+  font-size: 12px;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+
+/* Flechita */
+.options button::before {
+  content: "";
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+
+  border-width: 6px;
+  border-style: solid;
+  border-color: rgba(10, 20, 40, 0.95) transparent transparent transparent;
+
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Mostrar tooltip */
+.options button:hover::after,
+.options button:hover::before {
+  opacity: 1;
+}
+
+
+.bar {
+  position: relative;
+  height: 14px;
+  background: #222;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.bar div {
+  height: 100%;
+  transition: width 0.3s;
+}
+
+.bar span {
+  position: absolute;
+  right: 6px;
+  top: -2px;
+  font-size: 10px;
+}
+
+.battery div { background: #00c8ff; }
+.cargo div { background: #f0c000; }
+.defense div { background: #5cff5c; }
+
+.defense.hull div { background: #ff4c4c; }
+
+
+}
+
+
