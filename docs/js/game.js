@@ -87,6 +87,9 @@ async function loadAndRenderSystemObjects(player) {
   const container = document.getElementById("objects-container");
   container.innerHTML = "";
 
+  document.getElementById("debug-log").textContent =
+  JSON.stringify(objects, null, 2);
+
   const { data: objects } = await supabaseClient
     .from("space_objects")
     .select("*")
