@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8" />
   <title>Space Explorer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <link rel="stylesheet" href="css/style.css" />
 
   <!-- Supabase -->
@@ -17,7 +17,7 @@
 <body>
   <div class="app">
 
-    <!-- PANEL FIJO -->
+    <!-- SIDEBAR -->
     <aside class="sidebar">
 
       <div class="player">
@@ -44,15 +44,12 @@
         <h3>Mover nave</h3>
         <input type="number" id="move-x" placeholder="X" />
         <input type="number" id="move-y" placeholder="Y" />
-        <button onclick="handleMove()">Mover</button>
+        <button id="move-button" onclick="handleMove()">Mover</button>
         <div id="player-coords"></div>
       </div>
 
+      <!-- Estado de viaje -->
       <div id="travel-status" class="travel-status"></div>
-
-<button id="move-button" onclick="handleMove()">
-  Mover nave
-</button>
 
       <div class="ship">
         <h3 id="ship-name"></h3>
@@ -82,10 +79,9 @@
         </div>
       </div>
 
-
     </aside>
 
-    <!-- ZONA DINÁMICA -->
+    <!-- MAIN -->
     <main class="main">
 
       <div class="location">
@@ -97,20 +93,12 @@
 
       <section class="zone">
         <h2>Objetos disponibles</h2>
-        <div class="objects" id="objects-container">
-          <!-- Se llena por JS -->
-        </div>
+        <div class="objects" id="objects-container"></div>
       </section>
 
     </main>
 
   </div>
 
-  <div id="debug-panel" class="debug-panel">
-  <h3>📡 Objetos detectados</h3>
-  <pre id="debug-log"></pre>
-
-</div>
 </body>
-
 </html>
