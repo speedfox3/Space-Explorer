@@ -22,7 +22,9 @@ window.supabaseClient = window.supabase.createClient(
           if (typeof builder[m] === "function") {
             const orig = builder[m].bind(builder);
             builder[m] = function (...args) {
-              console.log(`[Supabase] Request ${m} -> ${table}`, ...args);
+              // suppress verbose logs for ships (battery/energy churn)
+              const suppressForShips = table === "ships";
+              if (!suppressForShips) console.log(`[Supabase] Request ${m} -> ${table}`, ...args);
               return orig(...args);
             };
           }
@@ -35,11 +37,11 @@ window.supabaseClient = window.supabase.createClient(
         builder.then = function (onFulfilled, onRejected) {
           return origThen(
             (res) => {
-              console.log(`[Supabase] Response <- ${table}`, res);
+              if (table !== "ships") console.log(`[Supabase] Response <- ${table}`, res);
               return onFulfilled ? onFulfilled(res) : res;
             },
             (err) => {
-              console.error(`[Supabase] Error <- ${table}`, err);
+              if (table !== "ships") console.error(`[Supabase] Error <- ${table}`, err);
               return onRejected ? onRejected(err) : Promise.reject(err);
             }
           );

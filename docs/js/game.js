@@ -285,21 +285,44 @@ async function checkPlayer() {
     new Date(player.busy_until) <= new Date() &&
     player.target_x !== null
   ) {
-    console.log("🛬 Viaje finalizado");
+    console.log("🛬 Viaje finalizado (auto-check)");
+    try {
+      // fetch latest player state from DB to avoid stale local object
+      const { data: latestPlayer, error: fetchErr } = await supabaseClient
+        .from("players")
+        .select("*")
+        .eq("id", player.id)
+        .single();
 
-    await supabaseClient
-      .from("players")
-      .update({
-        x: player.target_x,
-        y: player.target_y,
-        busy_until: null,
-        target_x: null,
-        target_y: null
-      })
-      .eq("id", player.id);
+      if (fetchErr) {
+        console.error("auto-finalize: could not fetch latest player", fetchErr);
+        return;
+      }
 
-    // volver a cargar estado real
-    return checkPlayer();
+      console.log("auto-finalize: latestPlayer", latestPlayer);
+
+      const upd = await supabaseClient
+        .from("players")
+        .update({
+          x: latestPlayer.target_x,
+          y: latestPlayer.target_y,
+          busy_until: null,
+          target_x: null,
+          target_y: null
+        })
+        .eq("id", player.id);
+
+      if (upd.error) {
+        console.error("auto-finalize: update failed", upd.error);
+      } else {
+        console.log("auto-finalize: update result", upd);
+      }
+
+      // reload real state
+      return checkPlayer();
+    } catch (e) {
+      console.error("auto-finalize: unexpected error", e);
+    }
   }
 
   const { data: ship } = await supabaseClient
@@ -341,9 +364,51 @@ function renderPlayer(player, ship) {
 }
 
 /**************************************************
- * LOGOUT
- **************************************************/
-async function logout() {
-  await supabaseClient.auth.signOut();
-  location.href = "login.html";
-}
+  try {
+    console.log("> finalizeTravel: applying arrival (fetching latest player)");
+
+    const { data: latestPlayer, error: fetchErr } = await supabaseClient
+      .from("players")
+      .select("*")
+      .eq("id", currentPlayer.id)
+      .single();
+
+    if (fetchErr) {
+      console.error("finalizeTravel: could not fetch latest player", fetchErr);
+      return;
+    }
+
+    console.log("finalizeTravel: latestPlayer", latestPlayer);
+
+    const res = await supabaseClient.from("players")
+      .update({
+        x: latestPlayer.target_x,
+        y: latestPlayer.target_y,
+        busy_until: null,
+        target_x: null,
+        target_y: null
+      })
+      .eq("id", currentPlayer.id);
+
+    if (res.error) {
+      console.error("finalizeTravel: update failed", res.error);
+      return;
+    }
+
+    console.log("< finalizeTravel: arrival applied", res);
+
+    // confirm DB state
+    const { data: confirmed, error: confErr } = await supabaseClient
+      .from("players")
+      .select("*")
+      .eq("id", currentPlayer.id)
+      .single();
+
+    if (confErr) console.error("finalizeTravel: could not confirm player", confErr);
+    else console.log("finalizeTravel: confirmed player", confirmed);
+
+    await checkPlayer();
+    clearTravelStatus();
+  } catch (e) {
+    console.error("finalizeTravel: unexpected error", e);
+  }
