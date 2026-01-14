@@ -19,6 +19,10 @@ background: rgba(255,255,255,0.04);
 border-radius: 12px;
 }
 
+.options button.selected {
+  border: 2px solid #00e0ff;
+  background: rgba(0, 224, 255, 0.15);
+}
 
 .ship h3 {
 margin: 0 0 8px 0;
@@ -95,6 +99,60 @@ cursor: pointer;
 .object button:disabled {
 opacity: 0.4;
 cursor: not-allowed;
+}
+
+.options button {
+  position: relative;
+  cursor: pointer;
+}
+
+/* Tooltip */
+.options button::after {
+  content: attr(data-tooltip);
+  white-space: pre-line;
+
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+
+  background: rgba(10, 20, 40, 0.95);
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 8px;
+
+  font-size: 0.85rem;
+  text-align: left;
+  min-width: 180px;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+
+  box-shadow: 0 0 12px rgba(0, 224, 255, 0.3);
+  z-index: 10;
+}
+
+/* Flechita */
+.options button::before {
+  content: "";
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+
+  border-width: 6px;
+  border-style: solid;
+  border-color: rgba(10, 20, 40, 0.95) transparent transparent transparent;
+
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Mostrar tooltip */
+.options button:hover::after,
+.options button:hover::before {
+  opacity: 1;
 }
 
 

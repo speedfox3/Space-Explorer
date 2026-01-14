@@ -1,11 +1,47 @@
+let selectedRace = null;
+let selectedShip = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+  // RAZAS
+  document.querySelectorAll("[data-race]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      selectedRace = btn.dataset.race;
+      highlightSelection(btn, "[data-race]");
+    });
+  });
+
+  // NAVES
+  document.querySelectorAll("[data-ship]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      selectedShip = btn.dataset.ship;
+      highlightSelection(btn, "[data-ship]");
+    });
+  });
+
+  // CONFIRMAR
+  document
+    .getElementById("confirm-create")
+    .addEventListener("click", createCharacter);
+});
+
+function highlightSelection(activeBtn, selector) {
+  document.querySelectorAll(selector).forEach(b => {
+    b.classList.remove("selected");
+  });
+  activeBtn.classList.add("selected");
+}
+
 async function createCharacter() {
-  const name = document.getElementById("player-name").value;
+  const name = document.getElementById("player-name").value.trim();
+
   if (!name || !selectedRace || !selectedShip) {
-    alert("Completa todos los campos");
+    alert("Completa nombre, raza y nave");
     return;
   }
 
-  const { data: { session } } = await supabaseClient.auth.getSession();
+  const { data: { session } } =
+    await supabaseClient.auth.getSession();
+
   if (!session) {
     window.location.href = "login.html";
     return;
@@ -18,7 +54,6 @@ async function createCharacter() {
     race: selectedRace
   });
 
-  // Stats iniciales según nave
   const shipStats = {
     scout: { engine: 5, battery: 3 },
     freighter: { engine: 2, battery: 6 },
@@ -34,7 +69,3 @@ async function createCharacter() {
 
   window.location.href = "index.html";
 }
-
-document
-  .getElementById("confirm-create")
-  .onclick = createCharacter;
