@@ -459,16 +459,16 @@ async function handleMove() {
  * TRAVEL FINALIZE
  **************************************************/
 async function finalizeTravel() {
-  await supabaseClient.from("players")
-  
-    .update({
-      x: currentPlayer.target_x,
-      y: currentPlayer.target_y,
-      busy_until: null,
-      target_x: null,
-      target_y: null
-    })
-    .eq("id", currentPlayer.id);
+  await supabaseClient
+  .from("players")
+  .update({
+    x: player.target_x,
+    y: player.target_y,
+    busy_until: null,
+    target_x: null,
+    target_y: null
+  })
+  .eq("id", player.id);
 
 
   await checkPlayer();
@@ -545,6 +545,34 @@ return checkPlayer(); }
 }
 
 /**************************************************
+ * QUE NO QUEDE EL PLAYER EN COORS NULL
+ **************************************************/
+
+function renderPlayer(player, ship) {
+  document.getElementById("player-name").textContent = player.name;
+  document.getElementById("player-credits").textContent = player.credits;
+  document.getElementById("player-location").textContent =
+    `Sistema ${player.system}`;
+
+  document.getElementById("ship-name").textContent =
+    `${ship.ship_name} (${ship.type})`;
+
+  updateBatteryBar(ship.battery_current, ship.battery_capacity);
+  updateCargoBar(ship.cargo_used, ship.cargo_capacity);
+  updateDefenseBar(ship);
+
+  document.getElementById("player-coords").textContent =
+    `X:${player.x} | Y:${player.y}`;
+
+  // ✅ Setear inputs de movimiento al reiniciar/cargar
+  setMoveInputsFromPlayer(player);
+}
+
+
+
+
+
+/**************************************************
  * RENDER PLAYER
  **************************************************/
 function renderPlayer(player, ship) {
@@ -563,7 +591,8 @@ function renderPlayer(player, ship) {
   document.getElementById("player-coords").textContent =
     `X:${player.x} | Y:${player.y}`;
 
-    
+      setMoveInputsFromPlayer(player);
+
 }
 
 
