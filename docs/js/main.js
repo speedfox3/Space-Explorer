@@ -127,6 +127,23 @@ function bindUI() {
     delBtn.addEventListener("click", deleteCharacter);
     delBtn.dataset.bound = "1";
   }
+const raceOptions = document.getElementById("race-options");
+raceOptions?.querySelectorAll("button[data-race]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    selectedRace = btn.dataset.race;
+    setSelectedWithin(raceOptions, btn);
+  });
+});
+
+const shipOptions = document.getElementById("ship-options");
+shipOptions?.querySelectorAll("button[data-ship]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    selectedShip = btn.dataset.ship;
+    setSelectedWithin(shipOptions, btn);
+  });
+});
+
+
 }
 
 async function init() {

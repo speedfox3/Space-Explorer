@@ -5,12 +5,9 @@ let selectedRace = null;
 let selectedShip = null;
 
 // UI helpers
-function setSelected(containerSelector, attr, value) {
-  const buttons = document.querySelectorAll(`${containerSelector} button[${attr}]`);
-  buttons.forEach(b => b.classList.remove("selected"));
-
-  const btn = document.querySelector(`${containerSelector} button[${attr}="${value}"]`);
-  if (btn) btn.classList.add("selected");
+function setSelectedWithin(containerEl, button) {
+  containerEl.querySelectorAll("button").forEach(b => b.classList.remove("selected"));
+  button.classList.add("selected");
 }
 
 async function ensureSessionOrRedirect() {
