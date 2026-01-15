@@ -2,6 +2,14 @@ import { supabaseClient } from "./supabase.js";
 import { setCurrentPlayer, setCurrentShip, getCurrentPlayer, getCurrentShip } from "./state.js";
 import { renderPlayer } from "./ui.js";
 
+
+const SHIP_FIELDS = {
+  cargoUsed: "cargo_used",   
+  cargoMax: "cargo_capacity"      
+};
+
+
+
 // ----------------------
 // Helpers
 // ----------------------
@@ -295,27 +303,35 @@ function stopHarvest(msg) {
 
 async function addCargo(cargoDelta) {
   const ship = getCurrentShip();
-  if (!ship) return;
+  const player = getCurrentPlayer();
 
- const newCargo = Number(ship.cargo_used || 0) + cargoDelta;
-const max = Number(ship.cargo_capacity || 0);
+  if (!ship) throw new Error("NO_SHIP");
 
-  if (cargoMax && newCargo > cargoMax) {
+  const usedField = SHIP_FIELDS.cargoUsed;
+  const maxField = SHIP_FIELDS.cargoMax;
+
+  const currentUsed = Number(ship?.[usedField] ?? 0);
+  const max = Number(ship?.[maxField] ?? 0);
+
+  const nextUsed = currentUsed + Number(cargoDelta);
+
+  // Si max=0 o null, asumimos “sin límite” (podés cambiar esto)
+  if (Number.isFinite(max) && max > 0 && nextUsed > max) {
     throw new Error("CARGO_FULL");
   }
 
-  // Persistimos cargo real en BD
   const { error } = await supabaseClient
     .from("ships")
-    .update({ cargo_used: newCargo })
+    .update({ [usedField]: nextUsed })
     .eq("id", ship.id);
 
   if (error) throw error;
 
-  // refrescar state + ui
-  ship.cargo = newCargo;
-  renderPlayer(getCurrentPlayer(), ship);
+  // actualizar state local para que renderPlayer lo muestre
+  ship[usedField] = nextUsed;
+  renderPlayer(player, ship);
 }
+
 
 async function startHarvest(id) {
   const item = findItem(id);
