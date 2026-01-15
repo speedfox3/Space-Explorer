@@ -1,13 +1,8 @@
-// main.js
 import { supabaseClient } from "./supabase.js";
-import { setCurrentPlayer, setCurrentShip, getCurrentPlayer } from "./state.js";
+import { setCurrentPlayer, setCurrentShip } from "./state.js";
 import { renderPlayer } from "./ui.js";
 import { loadAndRenderSystemObjects } from "./world.js";
 import { handleMoveClick, startTravelTimer } from "./movement.js";
-
-// Si tenés startBatteryRegen en tu game.js actual, muévelo a otro archivo (regen.js)
-// y lo importás acá. Por ahora lo dejo opcional.
-import { startBatteryRegen } from "./regen.js"; // si no existe aún, comentá esta línea
 
 async function checkPlayer() {
   const { data: { session } } = await supabaseClient.auth.getSession();
@@ -22,14 +17,14 @@ async function checkPlayer() {
     .eq("id", session.user.id)
     .single();
 
-  if (playerErr) console.error(playerErr);
+  if (playerErr) console.error("checkPlayer playerErr:", playerErr);
 
   if (!player) {
     window.location.href = "create-character.html";
     return;
   }
 
-  // ⏱️ Finalizar viaje si ya llegó (robusto ante F5)
+  // ✅ Robustez: si el viaje ya terminó (por F5 / pestaña pausada), finalizar acá
   if (player.busy_until) {
     const busyMs = Date.parse(player.busy_until);
     const arrived = Number.isFinite(busyMs) && Date.now() >= busyMs;
@@ -60,45 +55,41 @@ async function checkPlayer() {
     .eq("player_id", player.id)
     .single();
 
-  if (shipErr) console.error(shipErr);
+  if (shipErr) console.error("checkPlayer shipErr:", shipErr);
 
   setCurrentPlayer(player);
   setCurrentShip(ship);
 
   renderPlayer(player, ship);
   await loadAndRenderSystemObjects(player, ship);
+}
 
-  // Wire move button (ajustá el id si tu botón es otro)
-  const moveBtn = document.getElementById("move-btn");
-  if (moveBtn && !moveBtn.dataset.bound) {
-    moveBtn.onclick = handleMoveClick;
-    moveBtn.dataset.bound = "1";
+function bindUI() {
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn && !logoutBtn.dataset.bound) {
+    logoutBtn.addEventListener("click", async () => {
+      await supabaseClient.auth.signOut();
+      window.location.href = "login.html";
+    });
+    logoutBtn.dataset.bound = "1";
   }
 
-  // Timers (una sola vez)
+  const moveBtn = document.getElementById("move-btn");
+  if (moveBtn && !moveBtn.dataset.bound) {
+    moveBtn.addEventListener("click", handleMoveClick);
+    moveBtn.dataset.bound = "1";
+  }
+}
+
+async function init() {
+  bindUI();
+
   if (!window.__travelTimerStarted) {
     startTravelTimer();
     window.__travelTimerStarted = true;
   }
 
-  if (typeof startBatteryRegen === "function" && !window.__batteryRegenStarted && ship?.id) {
-    startBatteryRegen(ship.id);
-    window.__batteryRegenStarted = true;
-  }
-}
-
-export async function initGame() {
-  // Logout button
-  const logoutBtn = document.getElementById("logout-btn");
-  if (logoutBtn && !logoutBtn.dataset.bound) {
-    logoutBtn.onclick = async () => {
-      await supabaseClient.auth.signOut();
-      window.location.href = "login.html";
-    };
-    logoutBtn.dataset.bound = "1";
-  }
-
   await checkPlayer();
 }
 
-initGame();
+init();
