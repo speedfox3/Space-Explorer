@@ -359,3 +359,74 @@ cursor: not-allowed;
 /* Keep tooltips over panels */
 .options button::after,
 .options button::before { z-index: 9999; }
+
+
+/* ===== Button feedback (hover / active / focus) ===== */
+
+.btn,
+.options button {
+  transition: transform 0.08s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease, filter 0.15s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hover: más contraste */
+.btn:hover {
+  border-color: rgba(255,255,255,0.30);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 10px 24px rgba(0,0,0,0.25);
+  filter: brightness(1.06);
+}
+
+/* Active: hundirse */
+.btn:active {
+  transform: translateY(1px) scale(0.99);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 6px 14px rgba(0,0,0,0.22);
+  filter: brightness(0.98);
+}
+
+/* Focus visible (tab) */
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(94, 225, 255, 0.35), 0 0 0 1px rgba(94, 225, 255, 0.35);
+  border-color: rgba(94, 225, 255, 0.55);
+}
+
+/* Variantes */
+.btn.primary:hover { filter: brightness(1.05); }
+.btn.primary:active { filter: brightness(0.98); }
+
+.btn.danger:hover {
+  border-color: rgba(255, 76, 76, 0.55);
+  box-shadow: 0 0 0 3px rgba(255, 76, 76, 0.18), 0 10px 24px rgba(0,0,0,0.25);
+}
+.btn.danger:active {
+  transform: translateY(1px) scale(0.99);
+  filter: brightness(0.98);
+}
+
+/* ===== Options (create-character selections) ===== */
+
+.character-create .options button:hover {
+  border-color: rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.07);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+  transform: translateY(-1px);
+}
+
+.character-create .options button:active {
+  transform: translateY(0px) scale(0.99);
+  filter: brightness(0.98);
+}
+
+/* Selected state: bien notorio */
+.character-create .options button.selected,
+.options button.selected {
+  border: 2px solid rgba(94, 225, 255, 0.95);
+  background: rgba(0, 224, 255, 0.16);
+  box-shadow: 0 0 0 3px rgba(94, 225, 255, 0.12), 0 10px 24px rgba(0,0,0,0.28);
+}
+
+/* Optional: pequeño glow en selected */
+.character-create .options button.selected {
+  text-shadow: 0 0 12px rgba(94,225,255,0.25);
+}
