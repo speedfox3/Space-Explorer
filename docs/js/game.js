@@ -459,20 +459,39 @@ async function handleMove() {
  * TRAVEL FINALIZE
  **************************************************/
 async function finalizeTravel() {
+  // Si por alguna razón no hay target, no hacemos nada
+  if (!currentPlayer) return;
+
+  const tx = currentPlayer.target_x;
+  const ty = currentPlayer.target_y;
+
+  if (tx === null || ty === null) {
+    // No hay destino pendiente, limpiar UI y salir
+    currentPlayer.busy_until = null;
+    clearTravelStatus();
+    return;
+  }
+
   await supabaseClient
-  .from("players")
-  .update({
-    x: player.target_x,
-    y: player.target_y,
-    busy_until: null,
-    target_x: null,
-    target_y: null
-  })
-  .eq("id", player.id);
+    .from("players")
+    .update({
+      x: tx,
+      y: ty,
+      busy_until: null,
+      target_x: null,
+      target_y: null
+    })
+    .eq("id", currentPlayer.id);
 
+  // Estado local coherente (así no dependés del refresh)
+  currentPlayer.x = tx;
+  currentPlayer.y = ty;
+  currentPlayer.busy_until = null;
+  currentPlayer.target_x = null;
+  currentPlayer.target_y = null;
 
-  await checkPlayer();
   clearTravelStatus();
+  await checkPlayer();
 }
 
 /**************************************************
@@ -545,7 +564,7 @@ return checkPlayer(); }
 }
 
 /**************************************************
- * QUE NO QUEDE EL PLAYER EN COORS NULL
+ * RENDER PLAYER
  **************************************************/
 
 function renderPlayer(player, ship) {
@@ -568,13 +587,29 @@ function renderPlayer(player, ship) {
   setMoveInputsFromPlayer(player);
 }
 
+/**************************************************
+ * SET IMPUTS
+ **************************************************/
+function setMoveInputsFromPlayer(player) {
+  const xInput = document.getElementById("move-x");
+  const yInput = document.getElementById("move-y");
+  if (!xInput || !yInput) return;
 
+  const busyMs = player.busy_until ? Date.parse(player.busy_until) : NaN;
+  const isTraveling = Number.isFinite(busyMs) && Date.now() < busyMs;
+
+  const x = isTraveling ? (player.target_x ?? player.x) : player.x;
+  const y = isTraveling ? (player.target_y ?? player.y) : player.y;
+
+  xInput.value = (x ?? 0);
+  yInput.value = (y ?? 0);
+}
 
 
 
 /**************************************************
  * RENDER PLAYER
- **************************************************/
+ *******************************************
 function renderPlayer(player, ship) {
   document.getElementById("player-name").textContent = player.name;
   document.getElementById("player-credits").textContent = player.credits;
@@ -594,7 +629,7 @@ function renderPlayer(player, ship) {
       setMoveInputsFromPlayer(player);
 
 }
-
+*******/
 
 /**************************************************
  * LOGOUT
