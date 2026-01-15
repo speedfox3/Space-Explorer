@@ -459,20 +459,24 @@ async function handleMove() {
  * TRAVEL FINALIZE
  **************************************************/
 async function finalizeTravel() {
-  // Si por alguna razón no hay target, no hacemos nada
   if (!currentPlayer) return;
 
-  const tx = currentPlayer.target_x;
-  const ty = currentPlayer.target_y;
+  const tx = Number(currentPlayer.target_x);
+  const ty = Number(currentPlayer.target_y);
 
-  if (tx === null || ty === null) {
-    // No hay destino pendiente, limpiar UI y salir
+  // Si no hay destino válido, NO toques x/y en DB
+  if (!Number.isFinite(tx) || !Number.isFinite(ty)) {
+    console.warn("finalizeTravel: target inválido", currentPlayer.target_x, currentPlayer.target_y);
+
+    // solo limpiamos el viaje local + UI
     currentPlayer.busy_until = null;
+    currentPlayer.target_x = null;
+    currentPlayer.target_y = null;
     clearTravelStatus();
     return;
   }
 
-  await supabaseClient
+  const { error } = await supabaseClient
     .from("players")
     .update({
       x: tx,
@@ -483,7 +487,12 @@ async function finalizeTravel() {
     })
     .eq("id", currentPlayer.id);
 
-  // Estado local coherente (así no dependés del refresh)
+  if (error) {
+    console.error("finalizeTravel update error:", error);
+    alert("Error finalizando viaje (ver consola).");
+    return;
+  }
+
   currentPlayer.x = tx;
   currentPlayer.y = ty;
   currentPlayer.busy_until = null;
@@ -493,6 +502,7 @@ async function finalizeTravel() {
   clearTravelStatus();
   await checkPlayer();
 }
+
 
 /**************************************************
  * TRAVEL UI
@@ -534,35 +544,66 @@ async function checkPlayer() {
     return;
   }
 
-// ⏱️ ¿Llegó a destino? if ( player.busy_until && new Date(player.busy_until) <= new Date() && player.target_x !== null ) { g("🛬 Viaje finalizado — finalizando en DB", { playerId: player.id, target_x: player.target_x, target_y: player.target_y, busy_until: player.busy_until }console.lo);
+   // ⏱️ ¿Llegó a destino? (robusto)
+  if (player.busy_until) {
+    const busyMs = Date.parse(player.busy_until);
+    const arrived = Number.isFinite(busyMs) && Date.now() >= busyMs;
 
-const { data: updated, error } = await supabaseClient .from("players") .update({ x: player.target_x, y: player.target_y, busy_until: null, target_x: null, target_y: null }) .eq("id", player.id) .select() .maybeSingle();
+    if (arrived) {
+      const tx = Number(player.target_x);
+      const ty = Number(player.target_y);
 
-if (error) { console.error("Error actualizando player al finalizar viaje:", error); // show to the user (optional) alert("Error al finalizar viaje (ver consola)."); return; }
+      // Si no hay target válido, NO toques x/y
+      if (!Number.isFinite(tx) || !Number.isFinite(ty)) {
+        console.warn("Viaje terminó pero target inválido. Limpiando viaje sin mover.", {
+          playerId: player.id,
+          target_x: player.target_x,
+          target_y: player.target_y,
+          busy_until: player.busy_until
+        });
 
-console.log("Player actualizado tras viaje:", updated);
+        const { error } = await supabaseClient
+          .from("players")
+          .update({ busy_until: null, target_x: null, target_y: null })
+          .eq("id", player.id);
 
-// volver a cargar estado real 
-return checkPlayer(); }
+        if (error) {
+          console.error("Error limpiando viaje inválido:", error);
+          alert("Error al finalizar viaje (ver consola).");
+          return;
+        }
 
-  const { data: ship } = await supabaseClient
-    .from("ships")
-    .select("*")
-    .eq("player_id", player.id)
-    .single();
+        return checkPlayer();
+      }
 
-  currentPlayer = player;
-  currentShip = ship;
+      console.log("🛬 Viaje finalizado — actualizando posición en DB", {
+        playerId: player.id,
+        x: tx,
+        y: ty
+      });
 
-  renderPlayer(player, ship);
-  await loadAndRenderSystemObjects(player, ship);
+      const { error } = await supabaseClient
+        .from("players")
+        .update({
+          x: tx,
+          y: ty,
+          busy_until: null,
+          target_x: null,
+          target_y: null
+        })
+        .eq("id", player.id);
 
-  if (!window.__batteryRegenStarted) {
-    startBatteryRegen(ship.id);
-    window.__batteryRegenStarted = true;
+      if (error) {
+        console.error("Error actualizando player al finalizar viaje:", error);
+        alert("Error al finalizar viaje (ver consola).");
+        return;
+      }
+
+      // Volver a cargar estado real
+      return checkPlayer();
+    }
   }
 }
-
 /**************************************************
  * RENDER PLAYER
  **************************************************/
