@@ -297,8 +297,8 @@ async function addCargo(cargoDelta) {
   const ship = getCurrentShip();
   if (!ship) return;
 
-  const newCargo = Number(ship.cargo || 0) + cargoDelta;
-  const cargoMax = Number(ship.cargo_max || ship.cargoMax || 0);
+ const newCargo = Number(ship.cargo_used || 0) + cargoDelta;
+const max = Number(ship.cargo_capacity || 0);
 
   if (cargoMax && newCargo > cargoMax) {
     throw new Error("CARGO_FULL");
@@ -307,7 +307,7 @@ async function addCargo(cargoDelta) {
   // Persistimos cargo real en BD
   const { error } = await supabaseClient
     .from("ships")
-    .update({ cargo: newCargo })
+    .update({ cargo_used: newCargo })
     .eq("id", ship.id);
 
   if (error) throw error;
