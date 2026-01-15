@@ -3,7 +3,7 @@ import { supabaseClient } from "./supabase.js";
 import { distance } from "./math.js";
 import { BATTERY_COST_PER_UNIT, TIME_PER_UNIT } from "./balance.js";
 import { getCurrentPlayer, getCurrentShip, getCurrentSystemObjects, setCurrentPlayer, setCurrentShip } from "./state.js";
-import { renderTravelStatus, clearTravelStatus } from "./ui.js";
+import { renderTravelStatus, clearTravelStatus, renderPlayer } from "./ui.js";
 import { loadAndRenderSystemObjects } from "./world.js";
 
 function isOccupied(x, y) {
@@ -137,6 +137,9 @@ export async function finalizeTravel() {
 
     setCurrentPlayer({ ...currentPlayer, busy_until: null, target_x: null, target_y: null });
     clearTravelStatus();
+
+    // ✅ refrescar sidebar (coords, etc.)
+    renderPlayer(getCurrentPlayer(), getCurrentShip());
     return;
   }
 
@@ -159,11 +162,15 @@ export async function finalizeTravel() {
   setCurrentPlayer({ ...currentPlayer, x: tx, y: ty, busy_until: null, target_x: null, target_y: null });
   clearTravelStatus();
 
+  // ✅ refrescar sidebar (coords, inputs, etc.)
+  renderPlayer(getCurrentPlayer(), getCurrentShip());
+
   // refrescar objetos (por si el radar cambia al moverse)
   if (currentShip) {
     await loadAndRenderSystemObjects(getCurrentPlayer(), currentShip);
   }
 }
+
 
 export function startTravelTimer() {
   setInterval(async () => {
