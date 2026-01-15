@@ -1,9 +1,8 @@
 import { supabaseClient } from "./supabase.js";
-import { setCurrentPlayer, setCurrentShip } from "./state.js";
+import { setCurrentPlayer, setCurrentShip, getCurrentPlayer } from "./state.js";
 import { renderPlayer } from "./ui.js";
 import { loadAndRenderSystemObjects } from "./world.js";
 import { handleMoveClick, startTravelTimer } from "./movement.js";
-
 
 async function checkPlayer() {
   const { data: { session } } = await supabaseClient.auth.getSession();
@@ -25,7 +24,7 @@ async function checkPlayer() {
     return;
   }
 
-  // ✅ Robustez: si el viaje ya terminó (por F5 / pestaña pausada), finalizar acá
+  // ✅ si el viaje ya terminó (por F5 / pestaña pausada), finalizar acá
   if (player.busy_until) {
     const busyMs = Date.parse(player.busy_until);
     const arrived = Number.isFinite(busyMs) && Date.now() >= busyMs;
@@ -72,17 +71,14 @@ async function deleteCharacter() {
     return;
   }
 
-  const ok = confirm(
-    "⚠️ Esto eliminará tu personaje y su nave.\n\n¿Seguro que querés continuar?"
-  );
+  const ok = confirm("⚠️ Esto eliminará tu personaje y su nave.\n\n¿Seguro que querés continuar?");
   if (!ok) return;
 
-  // Doble confirmación (evita borrados accidentales)
   const ok2 = confirm("Última confirmación: ¿Eliminar definitivamente?");
   if (!ok2) return;
 
   try {
-    // 1) borrar ships primero
+    // 1) borrar ships
     const { error: shipErr } = await supabaseClient
       .from("ships")
       .delete()
@@ -98,28 +94,15 @@ async function deleteCharacter() {
 
     if (playerErr) throw playerErr;
 
-    // limpiar estado local
     setCurrentShip(null);
     setCurrentPlayer(null);
 
-    // opcional: cerrar sesión (recomendado para flujo limpio)
     await supabaseClient.auth.signOut();
 
-    // volver a crear personaje
     window.location.href = "create-character.html";
   } catch (e) {
     console.error("Error eliminando personaje:", e);
     alert("No se pudo eliminar el personaje (ver consola).");
-  }
-}
-
-function bindUI() {
-  // ... tus binds existentes
-
-  const delBtn = document.getElementById("delete-character-btn");
-  if (delBtn && !delBtn.dataset.bound) {
-    delBtn.addEventListener("click", deleteCharacter);
-    delBtn.dataset.bound = "1";
   }
 }
 
@@ -137,6 +120,12 @@ function bindUI() {
   if (moveBtn && !moveBtn.dataset.bound) {
     moveBtn.addEventListener("click", handleMoveClick);
     moveBtn.dataset.bound = "1";
+  }
+
+  const delBtn = document.getElementById("delete-character-btn");
+  if (delBtn && !delBtn.dataset.bound) {
+    delBtn.addEventListener("click", deleteCharacter);
+    delBtn.dataset.bound = "1";
   }
 }
 
