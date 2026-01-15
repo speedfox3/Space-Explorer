@@ -1,22 +1,17 @@
 import { supabaseClient } from "./supabase.js";
 
-function bindLogin() {
-  const btn = document.getElementById("google-login-btn");
-  if (!btn) return;
+const btn = document.getElementById("google-login-btn");
 
-  btn.addEventListener("click", async () => {
-    const { error } = await supabaseClient.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.origin + window.location.pathname.replace("login.html", "index.html")
-      }
-    });
-
-    if (error) {
-      console.error(error);
-      alert("Error al iniciar sesión con Google.");
-    }
+btn?.addEventListener("click", async () => {
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: new URL("index.html", window.location.href).toString(),
+    },
   });
-}
 
-bindLogin();
+  if (error) {
+    console.error(error);
+    alert("Error al iniciar sesión con Google.");
+  }
+});
