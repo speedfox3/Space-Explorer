@@ -92,31 +92,32 @@ async function createCharacter() {
 }
 
 function bindUI() {
-  // seleccionar raza
-  document.querySelectorAll('.options button[data-race]').forEach(btn => {
+  const raceOptions = document.getElementById("race-options");
+  raceOptions?.querySelectorAll("button[data-race]").forEach(btn => {
     btn.addEventListener("click", () => {
       selectedRace = btn.dataset.race;
-      setSelected(".options", "data-race", selectedRace);
+      raceOptions.querySelectorAll("button").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
     });
   });
 
-  // seleccionar nave
-  document.querySelectorAll('.options button[data-ship]').forEach(btn => {
+  const shipOptions = document.getElementById("ship-options");
+  shipOptions?.querySelectorAll("button[data-ship]").forEach(btn => {
     btn.addEventListener("click", () => {
       selectedShip = btn.dataset.ship;
-      setSelected(".options", "data-ship", selectedShip);
+      shipOptions.querySelectorAll("button").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
     });
   });
 
-  // crear
   document.getElementById("confirm-create")?.addEventListener("click", createCharacter);
 
-  // logout
   document.getElementById("logout-btn")?.addEventListener("click", async () => {
     await supabaseClient.auth.signOut();
     window.location.href = "login.html";
   });
 }
+
 
 async function init() {
   // si no hay sesión, afuera
