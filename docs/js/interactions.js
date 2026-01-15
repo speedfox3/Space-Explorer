@@ -20,6 +20,11 @@ export async function interactWithObject(obj) {
     return;
   }
 
+  if (obj.type === "planet") {
+  window.location.href = `mini-game1.html?planet_id=${encodeURIComponent(obj.id)}`;
+  return;
+}
+
   const newRemaining = Math.max(0, (obj.resources_remaining ?? 0) - 10);
 
   const { error } = await supabaseClient
