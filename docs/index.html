@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
   <meta charset="UTF-8" />
   <title>Space Explorer</title>
@@ -11,76 +10,97 @@
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script type="module" src="js/main.js"></script>
-
 </head>
 
 <body>
-  <div class="app">
+  <div class="game-layout">
 
-    <!-- SIDEBAR -->
-    <aside class="sidebar">
+    <!-- TOP BAR -->
+    <section class="game-topbar">
 
-      <div class="player">
-        <div class="avatar">🚀</div>
-        <div>
-          <h2 id="player-name">Comandante</h2>
-          <small id="player-location">—</small>
-        </div>
-      </div>
+      <!-- LEFT: SHIP -->
+      <aside class="panel">
+        <div class="panel-inner">
+          <h3 style="margin:0 0 10px 0; color: rgba(255,255,255,0.65);">Nave</h3>
+          <div id="ship-name" style="font-weight:800; font-size:16px;"></div>
 
-      <div class="stats">
-        <div class="stat">
-          <span>Créditos</span>
-          <span id="player-credits">0</span>
-        </div>
-        <button id="logout-btn">Logout</button>
-        <button id="delete-character-btn" type="button" class="danger">Eliminar personaje</button>
-        
-      </div>
+          <div class="bar-group">
+            <small>Baterías</small>
+            <div class="bar battery">
+              <div id="battery-bar"></div>
+              <span id="battery-text"></span>
+            </div>
+          </div>
 
-      <!-- MOVIMIENTO -->
-      <div class="movement">
-        <h3>Mover nave</h3>
+          <div class="bar-group">
+            <small>Carga</small>
+            <div class="bar cargo">
+              <div id="cargo-bar"></div>
+              <span id="cargo-text"></span>
+            </div>
+          </div>
 
-        <input type="number" id="move-x" placeholder="X" />
-        <input type="number" id="move-y" placeholder="Y" />
-
-        <button id="move-btn">Mover</button>
-
-        <div id="travel-status"></div>
-        <div id="player-coords"></div>
-      </div>
-
-      <!-- NAVE -->
-      <div class="ship">
-        <h3 id="ship-name"></h3>
-        <div class="bar-group"> <small>Baterías</small>
-          <div class="bar battery">
-            <div id="battery-bar"></div> <span id="battery-label"></span>
+          <div class="bar-group">
+            <small id="defense-label"></small>
+            <div class="bar defense">
+              <div id="defense-bar"></div>
+              <span id="defense-text"></span>
+            </div>
           </div>
         </div>
-        <div class="bar-group"> <small>Carga</small>
-          <div class="bar cargo">
-            <div id="cargo-bar"></div> <span id="cargo-label"></span>
+      </aside>
+
+      <!-- CENTER: MOVEMENT / STATUS -->
+      <section class="panel">
+        <div class="panel-inner">
+          <h3 style="margin:0 0 10px 0; color: rgba(255,255,255,0.65);">Movimiento</h3>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <input type="number" id="move-x" placeholder="X" style="flex: 1 1 120px;" />
+            <input type="number" id="move-y" placeholder="Y" style="flex: 1 1 120px;" />
+            <button id="move-btn" type="button" class="btn primary" style="flex: 1 1 140px;">Mover</button>
+          </div>
+
+          <div id="travel-status" style="margin-top:10px;"></div>
+          <div id="player-coords" style="margin-top:6px; color: rgba(255,255,255,0.80);"></div>
+        </div>
+      </section>
+
+      <!-- RIGHT: PLAYER -->
+      <aside class="panel">
+        <div class="panel-inner">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="font-size:26px;">🚀</div>
+            <div>
+              <div id="player-name" style="font-weight:900; font-size:16px;">Comandante</div>
+              <div id="player-location" style="color: rgba(255,255,255,0.65); font-size:13px;">—</div>
+            </div>
+          </div>
+
+          <div class="kv">
+            <span>Créditos</span>
+            <span id="player-credits">0</span>
+          </div>
+
+          <div style="display:grid; gap:10px; margin-top:12px;">
+            <button id="logout-btn" type="button" class="btn">Logout</button>
+            <button id="delete-character-btn" type="button" class="btn danger">Eliminar personaje</button>
           </div>
         </div>
-        <div class="bar-group"> <small id="defense-label"></small>
-          <div class="bar defense">
-            <div id="defense-bar"></div> <span id="defense-text"></span>
-          </div>
-        </div>
-      </div>
-    </aside>
+      </aside>
+
+    </section>
 
     <!-- MAIN -->
-    <main class="main">
-      <section class="zone">
-        <h2>Objetos disponibles</h2>
-        <div id="objects-container" class="objects"></div>
+    <main class="game-main">
+      <section class="panel">
+        <div class="panel-inner">
+          <h2 style="margin:0 0 10px 0;">Objetos disponibles</h2>
+          <div id="objects-container" class="objects"></div>
+        </div>
       </section>
     </main>
 
   </div>
 </body>
-
 </html>

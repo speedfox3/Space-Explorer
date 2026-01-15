@@ -5,16 +5,24 @@
   <title>Login</title>
   <link rel="stylesheet" href="css/style.css">
 
-  <!-- Supabase SDK (UMD, expone window.supabase) -->
+  <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
-<body>
+<body class="login-view">
 
-  <h1>🚀 Space Explorer</h1>
-  <button id="google-login-btn" type="button">Login con Google</button>
+  <main class="panel login-card">
+    <div class="panel-inner">
+      <h1 style="margin:0 0 12px 0;">🚀 Space Explorer</h1>
+      <p style="margin:0 0 14px 0; color: rgba(255,255,255,0.70);">
+        Iniciá sesión para continuar
+      </p>
 
-  <!-- ✅ Auth UI como módulo (y desde ahí importás supabaseClient) -->
+      <button id="google-login-btn" type="button" class="btn primary" style="width:100%;">
+        Login con Google
+      </button>
+    </div>
+  </main>
+
   <script type="module" src="./js/auth-ui.js"></script>
-
 </body>
 </html>
