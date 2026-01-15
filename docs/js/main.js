@@ -4,6 +4,7 @@ import { renderPlayer } from "./ui.js";
 import { loadAndRenderSystemObjects } from "./world.js";
 import { handleMoveClick, startTravelTimer } from "./movement.js";
 
+
 async function checkPlayer() {
   const { data: { session } } = await supabaseClient.auth.getSession();
   if (!session) {
@@ -62,6 +63,64 @@ async function checkPlayer() {
 
   renderPlayer(player, ship);
   await loadAndRenderSystemObjects(player, ship);
+}
+
+async function deleteCharacter() {
+  const p = getCurrentPlayer();
+  if (!p) {
+    alert("No hay jugador cargado.");
+    return;
+  }
+
+  const ok = confirm(
+    "⚠️ Esto eliminará tu personaje y su nave.\n\n¿Seguro que querés continuar?"
+  );
+  if (!ok) return;
+
+  // Doble confirmación (evita borrados accidentales)
+  const ok2 = confirm("Última confirmación: ¿Eliminar definitivamente?");
+  if (!ok2) return;
+
+  try {
+    // 1) borrar ships primero
+    const { error: shipErr } = await supabaseClient
+      .from("ships")
+      .delete()
+      .eq("player_id", p.id);
+
+    if (shipErr) throw shipErr;
+
+    // 2) borrar player
+    const { error: playerErr } = await supabaseClient
+      .from("players")
+      .delete()
+      .eq("id", p.id);
+
+    if (playerErr) throw playerErr;
+
+    // limpiar estado local
+    setCurrentShip(null);
+    setCurrentPlayer(null);
+
+    // opcional: cerrar sesión (recomendado para flujo limpio)
+    await supabaseClient.auth.signOut();
+
+    // volver a crear personaje
+    window.location.href = "create-character.html";
+  } catch (e) {
+    console.error("Error eliminando personaje:", e);
+    alert("No se pudo eliminar el personaje (ver consola).");
+  }
+}
+
+function bindUI() {
+  // ... tus binds existentes
+
+  const delBtn = document.getElementById("delete-character-btn");
+  if (delBtn && !delBtn.dataset.bound) {
+    delBtn.addEventListener("click", deleteCharacter);
+    delBtn.dataset.bound = "1";
+  }
 }
 
 function bindUI() {

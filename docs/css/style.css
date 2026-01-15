@@ -182,3 +182,70 @@ cursor: not-allowed;
 .defense.hull div { background: #ff4c4c; }
 
 
+/* ===== Create Character layout ===== */
+.character-create-view {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px 12px;
+  box-sizing: border-box;
+}
+
+.character-create {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 18px;
+  box-sizing: border-box;
+
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 16px;
+  backdrop-filter: blur(6px);
+}
+
+.character-create .form-section {
+  margin: 14px 0;
+}
+
+.character-create input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(0,0,0,0.35);
+  color: #e0e0e0;
+}
+
+.character-create .options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0 18px;
+}
+
+.character-create .options button {
+  flex: 1 1 160px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.04);
+  color: #e0e0e0;
+}
+
+.character-create button.primary {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: none;
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+/* Tooltips: evitar que se corten por overflow en mobile */
+.character-create .options button::after,
+.character-create .options button::before {
+  z-index: 9999;
+}
