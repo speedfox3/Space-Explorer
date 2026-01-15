@@ -430,3 +430,16 @@ cursor: not-allowed;
 .character-create .options button.selected {
   text-shadow: 0 0 12px rgba(94,225,255,0.25);
 }
+
+
+/* Defense: verde con escudo, rojo cuando ya es hull */
+.bar.defense > div { background: #5cff5c; }
+.bar.defense.is-hull > div { background: #ff4c4c; }
+
+/* Labels siempre visibles */
+.bar > span {
+  z-index: 2;
+  color: rgba(255,255,255,0.92);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+.bar > div { z-index: 1; }

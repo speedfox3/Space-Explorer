@@ -122,7 +122,15 @@ function bindUI() {
     moveBtn.dataset.bound = "1";
   }
 
+
+  const delBtn = document.getElementById("delete-character-btn");
+  if (delBtn && !delBtn.dataset.bound) {
+    delBtn.addEventListener("click", deleteCharacter); // 👈 ESTA línea
+    delBtn.dataset.bound = "1";
+  }
 }
+
+
 
 async function init() {
   bindUI();

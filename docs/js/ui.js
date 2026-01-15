@@ -3,7 +3,9 @@ export function updateBatteryBar(current, max) {
   const bar = document.getElementById("battery-bar");
   const pct = max > 0 ? Math.max(0, Math.min(100, Math.round((current / max) * 100))) : 0;
   if (bar) bar.style.width = pct + "%";
-  const label = document.getElementById("battery-label");
+
+  // ✅ ID correcto en index.html
+  const label = document.getElementById("battery-text");
   if (label) label.textContent = `${pct}%`;
 }
 
@@ -11,28 +13,42 @@ export function updateCargoBar(used, capacity) {
   const bar = document.getElementById("cargo-bar");
   const pct = capacity > 0 ? Math.max(0, Math.min(100, Math.round((used / capacity) * 100))) : 0;
   if (bar) bar.style.width = pct + "%";
-  const label = document.getElementById("cargo-label");
+
+  // ✅ ID correcto en index.html
+  const label = document.getElementById("cargo-text");
   if (label) label.textContent = `${pct}%`;
 }
 
+
 export function updateDefenseBar(ship) {
-  // En tu UI querías "S: x/y | H: x/y" + color según escudo/hull.
-  // Dejo el texto y vos podés mejorar estilos con CSS.
-  const label = document.getElementById("defense-label");
-  if (!label) return;
+  const label = document.getElementById("defense-label"); // el <small>
+  const barWrap = document.querySelector(".bar.defense"); // contenedor
+  const fill = document.getElementById("defense-bar");    // relleno
+  const text = document.getElementById("defense-text");   // el <span>
 
-  const sc = ship?.shield_current ?? 0;
-  const sm = ship?.shield_capacity ?? 0;
-  const hc = ship?.hull_current ?? 0;
-  const hm = ship?.hull_capacity ?? 0;
+  if (!label || !barWrap || !fill || !text) return;
 
-  label.textContent = `S:${sc}/${sm} | H:${hc}/${hm}`;
+  const sc = Number(ship?.shield_current ?? 0);
+  const sm = Number(ship?.shield_capacity ?? 0);
+  const hc = Number(ship?.hull_current ?? 0);
+  const hm = Number(ship?.hull_capacity ?? 0);
 
-  // Color: si hay escudo >0 verde, si no naranja/rojo según hull
-  if (sc > 0) label.dataset.state = "shield";
-  else if (hm > 0 && (hc / hm) < 0.3) label.dataset.state = "critical";
-  else label.dataset.state = "hull";
+  label.textContent = "Defensa";
+  text.textContent = `S:${sc}/${sm} | H:${hc}/${hm}`;
+
+  const shieldDepleted = sm > 0 && sc <= 0;
+
+  // ✅ clase para CSS (cambia color)
+  barWrap.classList.toggle("is-hull", shieldDepleted);
+
+  // % mostrado: escudo si existe, si no hull
+  const pct = shieldDepleted
+    ? (hm > 0 ? (hc / hm) * 100 : 0)
+    : (sm > 0 ? (sc / sm) * 100 : 0);
+
+  fill.style.width = `${Math.max(0, Math.min(100, Math.round(pct)))}%`;
 }
+
 
 export function setMoveInputsFromPlayer(player) {
   // OJO: tus inputs se llaman move-x / move-y en tu HTML actual
