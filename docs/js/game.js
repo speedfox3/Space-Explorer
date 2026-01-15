@@ -3,6 +3,7 @@
  **************************************************/
 let currentPlayer = null;
 let currentShip = null;
+let currentSystemObjects = [];
 
 /**************************************************
  * CONSTANTS
@@ -33,18 +34,111 @@ setInterval(async () => {
 }, 1000);
 
 /**************************************************
+ * HELPERS
+ **************************************************/
+function isOccupied(x, y) {
+  return currentSystemObjects.some(o => o.x === x && o.y === y);
+}
+
+function findNearestFreeSpot(targetX, targetY, maxRadius = 20) {
+  if (!isOccupied(targetX, targetY)) return { x: targetX, y: targetY };
+
+  for (let r = 1; r <= maxRadius; r++) {
+    for (let dx = -r; dx <= r; dx++) {
+      const candidates = [
+        { x: targetX + dx, y: targetY - r },
+        { x: targetX + dx, y: targetY + r },
+      ];
+      for (const c of candidates) {
+        if (!isOccupied(c.x, c.y)) return c;
+      }
+    }
+    for (let dy = -r + 1; dy <= r - 1; dy++) {
+      const candidates = [
+        { x: targetX - r, y: targetY + dy },
+        { x: targetX + r, y: targetY + dy },
+      ];
+      for (const c of candidates) {
+        if (!isOccupied(c.x, c.y)) return c;
+      }
+    }
+  }
+  return null; // todo ocupado dentro del radio
+}
+
+async function moveTo(targetX, targetY) {
+  if (currentPlayer.busy_until) {
+    alert("La nave está viajando");
+    return;
+  }
+
+  // Resolver colisión con objetos
+  const resolved = findNearestFreeSpot(targetX, targetY, 30);
+  if (!resolved) {
+    alert("No hay espacio libre cerca de ese destino.");
+    return;
+  }
+
+  if (resolved.x !== targetX || resolved.y !== targetY) {
+    // opcional: informar
+    console.log(`Destino ocupado. Reubicando a ${resolved.x}, ${resolved.y}`);
+  }
+
+  const dist = distance(currentPlayer, { x: resolved.x, y: resolved.y });
+  const cost = Math.ceil(dist * BATTERY_COST_PER_UNIT);
+
+  if (currentShip.battery_current < cost) {
+    alert("Batería insuficiente");
+    return;
+  }
+
+  const travelTime = Math.ceil(dist * TIME_PER_UNIT);
+  const busyUntil = new Date(Date.now() + travelTime).toISOString();
+
+  await supabaseClient
+    .from("ships")
+    .update({ battery_current: currentShip.battery_current - cost })
+    .eq("id", currentShip.id);
+
+  await supabaseClient
+    .from("players")
+    .update({
+      target_x: resolved.x,
+      target_y: resolved.y,
+      busy_until: busyUntil
+    })
+    .eq("id", currentPlayer.id);
+
+  currentShip.battery_current -= cost;
+  currentPlayer.busy_until = busyUntil;
+  currentPlayer.target_x = resolved.x;
+  currentPlayer.target_y = resolved.y;
+
+  renderTravelStatus(currentPlayer);
+}
+
+
+/**************************************************
  * UTILS
  **************************************************/
 function distance(a, b) {
   return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
 }
 
-function canSee(player, object) {
-  return distance(player, object) <= player.radar_range;
+function canSee(player, ship, object) {
+  const radar = ship.radar_range ?? 0;
+  return distance(player, object) <= radar;
 }
+
 
 function canInteract(player, object) {
   return distance(player, object) <= 5;
+}
+
+function updateCargoBar(used, max) {
+  const pct = max > 0 ? (used / max) * 100 : 0;
+  document.getElementById("cargo-bar").style.width = pct + "%";
+  document.getElementById("cargo-text").textContent = `${Math.round(pct)}%`;
 }
 
 /**************************************************
@@ -83,56 +177,101 @@ function updateBatteryBar(current, max) {
 }
 
 /**************************************************
+ * SHIELD BAR
+ **************************************************/
+function updateDefenseBar(ship) {
+  const shieldMax = ship.shield_capacity ?? 0;
+  const hullMax = ship.hull_capacity ?? 0;
+  const shieldCur = ship.shield_current ?? 0;
+  const hullCur = ship.hull_current ?? 0;
+
+  const totalMax = shieldMax + hullMax;
+  const totalCur = shieldCur + hullCur;
+  const pct = totalMax > 0 ? (totalCur / totalMax) * 100 : 0;
+
+  const bar = document.getElementById("defense-bar");
+  bar.style.width = pct + "%";
+
+  // Texto: "Escudo X/Y + Casco A/B"
+  document.getElementById("defense-text").textContent =
+    `S:${shieldCur}/${shieldMax} | H:${hullCur}/${hullMax}`;
+
+  // Label
+  document.getElementById("defense-label").textContent = "Defensa";
+
+  // Color según escudo
+  if (shieldCur > 0) {
+    bar.style.background = "#3b82f6"; // azul
+  } else {
+    bar.style.background = "#ef4444"; // rojo
+  }
+}
+
+
+
+
+
+
+/**************************************************
  * SYSTEM OBJECTS
  **************************************************/
-async function loadAndRenderSystemObjects(player) {
+async function loadAndRenderSystemObjects(player, ship) {
   console.log("🚀 loadAndRenderSystemObjects llamada", player);
+
   const container = document.getElementById("objects-container");
   container.innerHTML = "";
 
-  const { data: objects } = await supabaseClient
+  const { data: objects, error } = await supabaseClient
     .from("space_objects")
     .select("*")
     .eq("system_id", player.system);
+
+  if (error) {
+    console.error("Error trayendo space_objects:", error);
+    container.innerHTML = "<p>Error cargando objetos del sistema</p>";
+    return;
+  }
+
+  // Cache global para colisiones / nearest-free-spot
+  currentSystemObjects = objects ?? [];
 
   if (!objects || objects.length === 0) {
     container.innerHTML = "<p>No hay objetos en este sistema</p>";
     return;
   }
 
-  objects
-    //.filter(o => canSee(player, o))
-    .forEach(obj => {
-      const dist = distance(player, obj);
-      const interactable = canInteract(player, obj);
+  // Filtrar por radar
+  const visible = objects.filter(o => canSee(player, ship, o));
 
-      const div = document.createElement("div");
-      div.className = "object";
+  if (visible.length === 0) {
+    container.innerHTML = `<p>No detectás nada con el radar (rango: ${ship?.radar_range ?? 0}).</p>`;
+    return;
+  }
 
-  /*  console.log(
-  "Jugador:", player.x, player.y,
-  "Radar:", player.radar_range,
-  "Objeto ejemplo:", objects[0].x, objects[0].y,
-  "Distancia:", distance(player, objects[0])
-); */
+  visible.forEach(obj => {
+    const dist = distance(player, obj);
+    const interactable = canInteract(player, obj);
 
+    const div = document.createElement("div");
+    div.className = "object";
 
-      div.innerHTML = `
-        <h3>${obj.type}</h3>
-        <small>Recursos: ${obj.resources_remaining}</small>
-        <div>📍 Distancia: ${Math.round(dist)}</div>
-        <button ${interactable ? "" : "disabled"}>
-          ${interactable ? "Interactuar" : "Fuera de alcance"}
-        </button>
-      `;
+    div.innerHTML = `
+      <h3>${obj.type}</h3>
+      <small>Recursos: ${obj.resources_remaining}</small>
+      <div>📍 Distancia: ${Math.round(dist)}</div>
+      <button ${interactable ? "" : "disabled"}>
+        ${interactable ? "Interactuar" : "Fuera de alcance"}
+      </button>
+    `;
 
-      if (interactable) {
-        div.querySelector("button").onclick = () => interactWithObject(obj);
-      }
+    if (interactable) {
+      div.querySelector("button").onclick = () => interactWithObject(obj);
+    }
 
-      container.appendChild(div);
-    });
+    container.appendChild(div);
+  });
 }
+
 
 /**************************************************
  * INTERACTION
@@ -279,7 +418,7 @@ return checkPlayer(); }
   currentShip = ship;
 
   renderPlayer(player, ship);
-  await loadAndRenderSystemObjects(player);
+  await loadAndRenderSystemObjects(player, ship);
 
   if (!window.__batteryRegenStarted) {
     startBatteryRegen(ship.id);
@@ -300,10 +439,15 @@ function renderPlayer(player, ship) {
     `${ship.ship_name} (${ship.type})`;
 
   updateBatteryBar(ship.battery_current, ship.battery_capacity);
+  updateCargoBar(ship.cargo_used, ship.cargo_capacity);
+  updateDefenseBar(ship);
 
   document.getElementById("player-coords").textContent =
     `X:${player.x} | Y:${player.y}`;
+
+    
 }
+
 
 /**************************************************
  * LOGOUT
