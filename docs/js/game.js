@@ -37,7 +37,9 @@ setInterval(async () => {
  * HELPERS
  **************************************************/
 function isOccupied(x, y) {
-  return currentSystemObjects.some(o => o.x === x && o.y === y);
+  const nx = Number(x);
+  const ny = Number(y);
+  return currentSystemObjects.some(o => Number(o.x) === nx && Number(o.y) === ny);
 }
 
 function findNearestFreeSpot(targetX, targetY, maxRadius = 20) {
@@ -67,27 +69,52 @@ function findNearestFreeSpot(targetX, targetY, maxRadius = 20) {
 }
 
 async function moveTo(targetX, targetY) {
-  if (currentPlayer.busy_until) {
-    alert("La nave está viajando");
+  // Normalizar inputs
+  const tx = Number(targetX);
+  const ty = Number(targetY);
+
+  if (!Number.isFinite(tx) || !Number.isFinite(ty)) {
+    alert("Coordenadas inválidas.");
     return;
   }
 
-  // Resolver colisión con objetos
-  const resolved = findNearestFreeSpot(targetX, targetY, 30);
+  // Si busy_until existe pero ya pasó, lo limpiamos
+  if (currentPlayer.busy_until) {
+    const busyMs = Date.parse(currentPlayer.busy_until);
+    if (!Number.isNaN(busyMs) && Date.now() < busyMs) {
+      alert("La nave está viajando");
+      return;
+    } else {
+      // ya terminó: limpiar estado local (y opcionalmente en BD si querés)
+      currentPlayer.busy_until = null;
+      currentPlayer.target_x = null;
+      currentPlayer.target_y = null;
+    }
+  }
+
+  // Asegurar cache de objetos cargado (para colisiones)
+  if (!currentSystemObjects || currentSystemObjects.length === 0) {
+    await loadAndRenderSystemObjects(currentPlayer, currentShip);
+  }
+
+  // Resolver colisión (y normalizar salida)
+  const resolved = findNearestFreeSpot(tx, ty, 30);
   if (!resolved) {
     alert("No hay espacio libre cerca de ese destino.");
     return;
   }
 
-  if (resolved.x !== targetX || resolved.y !== targetY) {
-    // opcional: informar
-    console.log(`Destino ocupado. Reubicando a ${resolved.x}, ${resolved.y}`);
+  const rx = Number(resolved.x);
+  const ry = Number(resolved.y);
+
+  if (rx !== tx || ry !== ty) {
+    console.log(`Destino ocupado (${tx},${ty}). Reubicando a (${rx},${ry}).`);
   }
 
-  const dist = distance(currentPlayer, { x: resolved.x, y: resolved.y });
+  const dist = distance(currentPlayer, { x: rx, y: ry });
   const cost = Math.ceil(dist * BATTERY_COST_PER_UNIT);
 
-  if (currentShip.battery_current < cost) {
+  if ((currentShip.battery_current ?? 0) < cost) {
     alert("Batería insuficiente");
     return;
   }
@@ -95,27 +122,38 @@ async function moveTo(targetX, targetY) {
   const travelTime = Math.ceil(dist * TIME_PER_UNIT);
   const busyUntil = new Date(Date.now() + travelTime).toISOString();
 
-  await supabaseClient
+  // Writes (ideal: con manejo de errores)
+  const { error: shipErr } = await supabaseClient
     .from("ships")
     .update({ battery_current: currentShip.battery_current - cost })
     .eq("id", currentShip.id);
 
-  await supabaseClient
+  if (shipErr) {
+    console.error(shipErr);
+    alert("Error actualizando batería: " + shipErr.message);
+    return;
+  }
+
+  const { error: playerErr } = await supabaseClient
     .from("players")
-    .update({
-      target_x: resolved.x,
-      target_y: resolved.y,
-      busy_until: busyUntil
-    })
+    .update({ target_x: rx, target_y: ry, busy_until: busyUntil })
     .eq("id", currentPlayer.id);
 
+  if (playerErr) {
+    console.error(playerErr);
+    alert("Error iniciando viaje: " + playerErr.message);
+    return;
+  }
+
+  // Estado local
   currentShip.battery_current -= cost;
   currentPlayer.busy_until = busyUntil;
-  currentPlayer.target_x = resolved.x;
-  currentPlayer.target_y = resolved.y;
+  currentPlayer.target_x = rx;
+  currentPlayer.target_y = ry;
 
   renderTravelStatus(currentPlayer);
 }
+
 
 
 /**************************************************
@@ -233,7 +271,12 @@ async function loadAndRenderSystemObjects(player, ship) {
   }
 
   // Cache global para colisiones / nearest-free-spot
-  currentSystemObjects = objects ?? [];
+  currentSystemObjects = (objects ?? []).map(o => ({
+  ...o,
+  x: Number(o.x),
+  y: Number(o.y),
+  system_id: Number(o.system_id),
+}));
 
   if (!objects || objects.length === 0) {
     container.innerHTML = "<p>No hay objetos en este sistema</p>";
