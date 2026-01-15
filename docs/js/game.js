@@ -182,6 +182,33 @@ function updateCargoBar(used, max) {
   document.getElementById("cargo-text").textContent = `${Math.round(pct)}%`;
 }
 
+
+/**************************************************
+ * RADAR
+ **************************************************/
+function getEffectiveRadarRange(player, ship) {
+  let range = ship?.radar_range ?? 0;
+
+  // Ejemplos (dejalo listo para crecer):
+  // - upgrade de radar
+  range += ship?.radar_bonus_flat ?? 0;
+
+  // - buff temporal
+  if (ship?.radar_boost_until && Date.parse(ship.radar_boost_until) > Date.now()) {
+    range *= 1.25;
+  }
+
+  // - daños afectan radar (ejemplo)
+  const hullPct = (ship?.hull_current ?? 100) / (ship?.hull_capacity ?? 100);
+  if (hullPct < 0.5) range *= 0.9;
+
+  return Math.max(0, Math.floor(range));
+}
+
+function canSee(player, ship, object) {
+  return distance(player, object) <= getEffectiveRadarRange(player, ship);
+}
+
 /**************************************************
  * BATTERY REGEN
  **************************************************/
@@ -273,51 +300,131 @@ async function loadAndRenderSystemObjects(player, ship) {
     return;
   }
 
-  // Cache global para colisiones / nearest-free-spot
+  // Cache global para colisiones / nearest-free-spot (IMPORTANTE para moveTo)
   currentSystemObjects = (objects ?? []).map(o => ({
-  ...o,
-  x: Number(o.x),
-  y: Number(o.y),
-  system_id: Number(o.system_id),
-}));
+    ...o,
+    x: Number(o.x),
+    y: Number(o.y),
+    system_id: Number(o.system_id),
+  }));
 
   if (!objects || objects.length === 0) {
     container.innerHTML = "<p>No hay objetos en este sistema</p>";
     return;
   }
 
-  // Filtrar por radar
-  const visible = objects.filter(o => canSee(player, ship, o));
+  // 1) Visibles por radar ahora
+  const radarRange = getEffectiveRadarRange(player, ship);
+  const visibleNow = objects.filter(o => canSee(player, ship, o));
 
-  if (visible.length === 0) {
-    container.innerHTML = `<p>No detectás nada con el radar (rango: ${ship?.radar_range ?? 0}).</p>`;
-    return;
+  // 2) Guardar descubrimientos (upsert) de lo visible
+  //    (si no hay nada visible, igual seguimos para mostrar "descubiertos")
+  if (visibleNow.length > 0) {
+    const rows = visibleNow.map(o => ({
+      player_id: player.id,
+      object_id: o.id,
+      last_seen_at: new Date().toISOString()
+    }));
+
+    const { error: upsertErr } = await supabaseClient
+      .from("player_discovered_objects")
+      .upsert(rows, { onConflict: "player_id,object_id" });
+
+    if (upsertErr) {
+      console.error("Error upsert descubrimientos:", upsertErr);
+      // no cortamos: solo afecta UX
+    }
   }
 
-  visible.forEach(obj => {
-    const dist = distance(player, obj);
-    const interactable = canInteract(player, obj);
+  // 3) Traer descubiertos del jugador (en este sistema)
+  //    Tip: join a space_objects para traer datos del objeto
+  const { data: discovered, error: discErr } = await supabaseClient
+    .from("player_discovered_objects")
+    .select("object_id, space_objects(*)")
+    .eq("player_id", player.id);
 
-    const div = document.createElement("div");
-    div.className = "object";
+  if (discErr) {
+    console.error("Error trayendo descubiertos:", discErr);
+    // seguimos igual, mostrando solo radar
+  }
 
-    div.innerHTML = `
-      <h3>${obj.type}</h3>
-      <small>Recursos: ${obj.resources_remaining}</small>
-      <div>📍 Distancia: ${Math.round(dist)}</div>
-      <button ${interactable ? "" : "disabled"}>
-        ${interactable ? "Interactuar" : "Fuera de alcance"}
-      </button>
-    `;
+  // Filtrar solo los descubiertos de ESTE sistema (por si el jugador tiene de otros)
+  const discoveredObjects = (discovered ?? [])
+    .map(r => r.space_objects)
+    .filter(o => o && Number(o.system_id) === Number(player.system));
 
-    if (interactable) {
-      div.querySelector("button").onclick = () => interactWithObject(obj);
-    }
+  // 4) Separar descubiertos fuera de radar
+  const visibleIds = new Set(visibleNow.map(o => o.id));
+  const discoveredButNotVisible = discoveredObjects.filter(o => !visibleIds.has(o.id));
 
-    container.appendChild(div);
+  // 5) Render
+  const parts = [];
+
+  // Sección Radar
+  parts.push(`<h3>Detectados por radar (rango: ${radarRange})</h3>`);
+  if (visibleNow.length === 0) {
+    parts.push(`<p>No detectás nada ahora mismo.</p>`);
+  } else {
+    visibleNow.forEach(obj => parts.push(renderObjectCard(player, ship, obj, true)));
+  }
+
+  // Sección Descubiertos
+  parts.push(`<h3>Descubiertos</h3>`);
+  if (discoveredButNotVisible.length === 0) {
+    parts.push(`<p>Aún no tenés objetos descubiertos fuera del radar.</p>`);
+  } else {
+    discoveredButNotVisible.forEach(obj => parts.push(renderObjectCard(player, ship, obj, false)));
+  }
+
+  container.innerHTML = parts.join("\n");
+
+  // wire de botones interactuar
+  // (busca todos los botones y conecta por data-id)
+  container.querySelectorAll("button[data-obj-id]").forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.getAttribute("data-obj-id");
+      const obj = objects.find(o => o.id === id) || discoveredObjects.find(o => o.id === id);
+      if (obj) interactWithObject(obj);
+    };
   });
 }
 
+/**************************************************
+ * RENDER OBJETOS
+ **************************************************/
+function renderObjectCard(player, ship, obj, isVisibleNow) {
+  const dist = distance(player, obj);
+  const interactable = canInteract(player, obj);
+
+  // gating por nivel (si todavía no existe, lo dejo preparado)
+  const playerLevel = player.level ?? 1;
+  const objLevel = obj.level ?? 1;
+  const levelOk = playerLevel >= objLevel;
+
+  // En “descubiertos fuera de radar” igual mostramos distancia aproximada real (con coords exactas)
+  // (si preferís ocultar distancia cuando no está visible, lo cambiamos)
+  const status = isVisibleNow ? "🟢 Radar" : "🟡 Descubierto";
+
+  const disabledReason =
+    !levelOk ? "Nivel insuficiente" :
+    !interactable ? "Fuera de alcance" :
+    "";
+
+  const disabled = disabledReason ? "disabled" : "";
+
+  return `
+    <div class="object">
+      <h3>${obj.type} <small>${status}</small></h3>
+      <small>Nivel: ${objLevel}</small><br/>
+      <small>Recursos: ${obj.resources_remaining ?? "-"}</small>
+      <div>📍 Posición: X:${obj.x} | Y:${obj.y}</div>
+      <div>📏 Distancia: ${Math.round(dist)}</div>
+      <button data-obj-id="${obj.id}" ${disabled}>
+        ${disabledReason ? disabledReason : "Interactuar"}
+      </button>
+    </div>
+  `;
+}
 
 /**************************************************
  * INTERACTION
