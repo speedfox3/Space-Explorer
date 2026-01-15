@@ -34,7 +34,7 @@ setInterval(async () => {
 }, 1000);
 
 /**************************************************
- * HELPERS
+ * COORDENADA OCUPADA
  **************************************************/
 function isOccupied(x, y) {
   const nx = Number(x);
@@ -68,6 +68,9 @@ function findNearestFreeSpot(targetX, targetY, maxRadius = 20) {
   return null; // todo ocupado dentro del radio
 }
 
+/**************************************************
+ * MOVEMENT
+ **************************************************/
 async function moveTo(targetX, targetY) {
   // Normalizar inputs
   const tx = Number(targetX);
@@ -334,7 +337,7 @@ async function interactWithObject(object) {
 }
 
 /**************************************************
- * MOVEMENT
+ * HANDLER MOVEMENT
  **************************************************/
 async function handleMove() {
   const x = parseInt(document.getElementById("move-x").value);
@@ -343,41 +346,6 @@ async function handleMove() {
   if (isNaN(x) || isNaN(y)) return alert("Coordenadas inválidas");
   moveTo(x, y);
 
-}
-async function moveTo(targetX, targetY) {
-  if (currentPlayer.busy_until) {
-    alert("La nave está viajando");
-    return;
-  }
-
-  console.log("moviendo a", targetX , ",", targetY);
-
-  const dist = distance(currentPlayer, { x: targetX, y: targetY });
-  const cost = Math.ceil(dist * BATTERY_COST_PER_UNIT);
-
-  if (currentShip.battery_current < cost) {
-    alert("Batería insuficiente");
-    return;
-  }
-
-  const travelTime = dist * TIME_PER_UNIT;
-  const busyUntil = new Date(Date.now() + travelTime).toISOString();
-
-  await supabaseClient.from("ships")
-    .update({ battery_current: currentShip.battery_current - cost })
-    .eq("id", currentShip.id);
-
-  await supabaseClient.from("players")
-    .update({
-      target_x: targetX,
-      target_y: targetY,
-      busy_until: busyUntil
-    })
-    .eq("id", currentPlayer.id);
-
-  currentPlayer.busy_until = busyUntil;
-  currentPlayer.target_x = targetX;
-  currentPlayer.target_y = targetY;
 }
 
 /**************************************************
