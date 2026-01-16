@@ -1,3 +1,5 @@
+console.log("MINIGAME JS LOADED v2026-01-16 A");
+
 import { supabaseClient } from "./supabase.js";
 import { setCurrentPlayer, setCurrentShip, getCurrentPlayer, getCurrentShip } from "./state.js";
 import { renderPlayer } from "./ui.js";
