@@ -2,6 +2,7 @@ import { supabaseClient } from "./supabase.js";
 
 let session = null;
 let player = null;
+let currentShipId = null;
 
 let inventory = [];
 let marketFeePct = 0.05;
@@ -58,6 +59,8 @@ async function loadInventory() {
     .select("id")
     .eq("player_id", session.user.id)
     .limit(1);
+
+  currentShipId = shipId;  
 
   if (shipErr) throw shipErr;
   const shipId = ships?.[0]?.id;
@@ -357,10 +360,11 @@ async function onSell() {
 
   try {
     if (mode === "direct") {
-      const { data, error } = await supabaseClient.rpc("sell_to_market", {
-        p_item_id: itemId,
-        p_qty: qty
-      });
+      const { data, error } = await supabaseClient.rpc("sell_to_market_ship", {
+  p_ship_id: currentShipId,
+  p_item_id: itemId,
+  p_qty: qty
+});
       if (error) throw error;
 
       await loadPlayer();
