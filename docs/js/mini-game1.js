@@ -448,8 +448,6 @@ function updateMovementUI(ts) {
     mg.surfaceX = toX;
     mg.moving = null;
     setStatus(`Llegaste a X=${mg.surfaceX}.`);
-    // Al llegar, re-scan opcional
-    doScan(false);
   }
 }
 
@@ -467,7 +465,7 @@ async function startHarvest(nodeId) {
   const node = findNode(nodeId);
   if (!node || node.remaining <= 0) return;
 
-  const d = dist(mg.surfaceX, node.x);
+  const d = Math.abs(Number(node.x) - mg.surfaceX);
   const rate = harvestRate(d);
 
   if (rate <= 0) {
@@ -482,7 +480,7 @@ async function startHarvest(nodeId) {
       node.remaining = res.node_remaining;
 
       setStatus(`Recolectado x${res.collected_qty}`);
-      await doScan(false);
+      await doScan(false, false);
     } catch (e) {
       if (e.code === "cargo_full") setStatus("Carga llena.");
       else if (e.code === "node_empty") setStatus("Ese recurso ya se agotó.");
@@ -556,7 +554,7 @@ async function tick(ts) {
 
       if (node.remaining <= 0) {
         stopHarvest("¡Nodo agotado! Escaneá para encontrar otro.");
-        await doScan(false);
+        await doScan(false, false);
       }
     } catch (e) {
       if (e.code === "cargo_full") stopHarvest("Carga llena. Recolección detenida.");
@@ -565,7 +563,7 @@ async function tick(ts) {
         console.error(e);
         stopHarvest("Error recolectando (ver consola).");
       }
-      await doScan(false);
+      await doScan(false, false);
     }
   }
 
@@ -692,7 +690,7 @@ async function init() {
   // mg.scanRange = ship.radar_range || 25
   // mg.hasMiningGear = player.has_mining_gear || false
 
-  await doScan(false);
+  await doScan(false, false);
   setStatus("Aterrizaste. Escaneá y recolectá.");
 
   requestAnimationFrame(tick);
