@@ -52,10 +52,29 @@ async function loadPlayer() {
 }
 
 async function loadInventory() {
-  const { data, error } = await supabaseClient
-    .from("inventories")
-    .select("item_id, qty, items:items(id,name,rarity,type,base_value,stackable)")
+  // 1) buscar ship_id del jugador (tomamos la primera nave)
+  const { data: ships, error: shipErr } = await supabaseClient
+    .from("ships")
+    .select("id")
     .eq("player_id", session.user.id)
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (shipErr) throw shipErr;
+  const shipId = ships?.[0]?.id;
+  if (!shipId) {
+    inventory = [];
+    renderSellInventory();
+    renderBuyTypes();
+    updateSellFormHints();
+    return;
+  }
+
+  // 2) cargar la bahía real (ship_inventory)
+  const { data, error } = await supabaseClient
+    .from("ship_inventory")
+    .select("item_id, qty, items:items(id,name,rarity,type,base_value,stackable)")
+    .eq("ship_id", shipId)
     .gt("qty", 0)
     .order("qty", { ascending: false });
 
@@ -65,6 +84,7 @@ async function loadInventory() {
   renderBuyTypes();
   updateSellFormHints();
 }
+
 
 function setTab(tab) {
   const buyView = $("buy-view");
