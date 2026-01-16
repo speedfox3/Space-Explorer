@@ -86,7 +86,9 @@ function setRadarStatus(text) {
   if (el) el.textContent = text;
 }
 
-
+function filterNodesByRange(all, range) {
+  return (all || []).filter(n => Math.abs(n.x - mg.surfaceX) <= range);
+}
 
 
 // ----------------------
@@ -101,7 +103,9 @@ const mg = {
   surfaceX: 0,
 
   // upgrades (luego desde BD)
-  scanRange: 25,
+  visionRange: 10,  // lo que ves “sin escanear”
+  scanRange: 25,    // lo que ves cuando apretás Escanear
+  lastScanTs: 0,
   hasMiningGear: false,
 
   // Nodos reales de BD (object_nodes join items)
@@ -215,7 +219,7 @@ async function scanAndLoadNodes() {
   const all = data || [];
 
   // Filtrar por rango
-  mg.nodes = all.filter(n => Math.abs(n.x - mg.surfaceX) <= mg.scanRange);
+  mg.nodes = filterNodesByRange(all, range);
 
   // Regla: si no hay equipo minería, ocultar vetas
   if (!mg.hasMiningGear) {
