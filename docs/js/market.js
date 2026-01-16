@@ -60,10 +60,11 @@ async function loadInventory() {
     .eq("player_id", session.user.id)
     .limit(1);
 
-  currentShipId = shipId;  
-
   if (shipErr) throw shipErr;
-  const shipId = ships?.[0]?.id;
+
+  const shipId = ships?.[0]?.id;     // <- primero se declara
+  currentShipId = shipId || null;    // <- ahora sí
+
   if (!shipId) {
     inventory = [];
     renderSellInventory();
@@ -81,11 +82,13 @@ async function loadInventory() {
     .order("qty", { ascending: false });
 
   if (error) throw error;
+
   inventory = data || [];
   renderSellInventory();
   renderBuyTypes();
   updateSellFormHints();
 }
+
 
 
 function setTab(tab) {
@@ -123,7 +126,7 @@ function renderSellInventory() {
     opt.value = row.item_id;
     opt.textContent = `${it.name} (x${row.qty})`;
     opt.dataset.maxQty = String(row.qty);
-    opt.dataset.basePrice = String(it.base_price ?? 0);
+    opt.dataset.basePrice = String(it.base_value ?? 0);
     opt.dataset.stackable = it.stackable ? "1" : "0";
     sel.appendChild(opt);
   }
