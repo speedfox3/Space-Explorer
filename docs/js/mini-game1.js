@@ -204,7 +204,7 @@ async function collectFromNode(nodeId, qtyWanted) {
 // - Trae nodos del objeto
 // - Filtra por rango en JS (más simple que abs() en query builder)
 // ----------------------
-async function scanAndLoadNodes() {
+async function scanAndLoadNodes(range) {
   const { data, error } = await supabaseClient
     .from("object_nodes")
     .select(`
@@ -218,8 +218,8 @@ async function scanAndLoadNodes() {
 
   const all = data || [];
 
-  // Filtrar por rango
-  mg.nodes = filterNodesByRange(all, range);
+  // ✅ usa el rango que te pasan
+  mg.nodes = all.filter(n => Math.abs(n.x - mg.surfaceX) <= range);
 
   // Regla: si no hay equipo minería, ocultar vetas
   if (!mg.hasMiningGear) {
@@ -229,6 +229,7 @@ async function scanAndLoadNodes() {
   // Ordenar por cercanía
   mg.nodes.sort((a, b) => Math.abs(a.x - mg.surfaceX) - Math.abs(b.x - mg.surfaceX));
 }
+
 
 async function onRadar() {
   // si todavía no hay nodos cargados, escaneamos
@@ -564,16 +565,15 @@ async function tick(ts) {
   requestAnimationFrame(tick);
 }
 
-async function doScan(showStatus = true) {
-  try {
-    await scanAndLoadNodes();
-    renderDetected();
-    if (showStatus) setStatus("Escaneo completado.");
-  } catch (e) {
-    console.error(e);
-    if (showStatus) setStatus("Error escaneando (ver consola).");
-  }
+async function doScan(showStatus = true, useScanRange = false) {
+  const range = useScanRange ? mg.scanRange : mg.visionRange;
+
+  await scanAndLoadNodes(range);
+  renderDetected();
+
+  if (showStatus) setStatus(`Escaneo completado. Rango: ±${range}`);
 }
+
 
 // ----------------------
 // UI bindings
