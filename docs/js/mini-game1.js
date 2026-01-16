@@ -236,7 +236,7 @@ async function scanAndLoadNodes(range) {
 async function onRadar() {
   // si todavía no hay nodos cargados, escaneamos
   if (!Array.isArray(mg.nodes) || mg.nodes.length === 0) {
-    await doScan(false);
+    await doScan(false, true); // ✅ usa mg.scanRange (25)
   }
 
   const res = radarDirectionFromDetected();
@@ -282,8 +282,9 @@ function setStatus(msg) {
 
 function setCoords() {
   $("player-coords").textContent =
-    `X: ${mg.surfaceX} • Rango: ${mg.scanRange} • ${mg.hasMiningGear ? "Minería" : "Sin minería"}`;
+    `X: ${mg.surfaceX} • Rango: ${mg.visionRange} • ${mg.hasMiningGear ? "Minería" : "Sin minería"}`;
 }
+
 
 function setPlanetUI() {
   $("planet-title").textContent = mg.planet ? `Planeta: ${mg.planet.name || mg.planet.id}` : "";
@@ -627,7 +628,7 @@ function bindUI() {
   if (scanBtn && !scanBtn.dataset.bound) {
     scanBtn.addEventListener("click", async () => {
       if (mg.collecting) stopHarvest("Escaneo realizado. Recolección pausada.");
-      await doScan(true);
+      await doScan(true, true); // ✅ usa mg.scanRange (25)
     });
     scanBtn.dataset.bound = "1";
   }
