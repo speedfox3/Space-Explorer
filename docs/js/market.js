@@ -8,6 +8,7 @@ let inventory = [];
 let marketFeePct = 0.05;
 let directSellPct = 0.8;
 
+
 function $(id) { return document.getElementById(id); }
 function fmt(n) { return Number(n || 0).toLocaleString("es-ES"); }
 
@@ -59,10 +60,10 @@ async function loadInventory() {
     .select("id")
     .eq("player_id", session.user.id)
     .limit(1);
-
+  const shipId = ships?.[0]?.id;     // <- primero se declara
+  
   if (shipErr) throw shipErr;
 
-  const shipId = ships?.[0]?.id;     // <- primero se declara
   currentShipId = shipId || null;    // <- ahora sí
 
   if (!shipId) {
