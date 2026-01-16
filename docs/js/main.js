@@ -140,6 +140,11 @@ async function init() {
     window.__travelTimerStarted = true;
   }
 
+  if (!window.__batteryRegenStarted) {
+  startBatteryRegen();
+  window.__batteryRegenStarted = true;
+}
+
   await checkPlayer();
 }
 
