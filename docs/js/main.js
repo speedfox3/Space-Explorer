@@ -3,6 +3,7 @@ import { setCurrentPlayer, setCurrentShip, getCurrentPlayer } from "./state.js";
 import { renderPlayer } from "./ui.js";
 import { loadAndRenderSystemObjects } from "./world.js";
 import { handleMoveClick, startTravelTimer } from "./movement.js";
+import { startBatteryRegen } from "./battery.js";
 
 async function checkPlayer() {
   const { data: { session } } = await supabaseClient.auth.getSession();
