@@ -81,12 +81,10 @@ function radarDirectionFromDetected() {
 
 
 function setRadarStatus(text) {
-  const el = document.getElementById("radar-status")
-          || document.getElementById("travel-status")
-          || document.getElementById("status")
-          || document.getElementById("srch-status");
+  const el = document.getElementById("radar-status");
   if (el) el.textContent = text;
 }
+
 
 function filterNodesByRange(all, range) {
   return (all || []).filter(n => Math.abs(n.x - mg.surfaceX) <= range);
