@@ -263,8 +263,15 @@ function harvestRate(d) {
 }
 
 function setStatus(msg) {
-  $("travel-status").textContent = msg;
+  const el =
+    document.getElementById("travel-status") ||
+    document.getElementById("status") ||
+    document.getElementById("srch-status") ||
+    document.getElementById("radar-status");
+
+  if (el) el.textContent = msg;
 }
+
 
 function setCoords() {
   $("player-coords").textContent =
