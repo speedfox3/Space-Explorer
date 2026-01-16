@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Space Explorer - Mercado</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script type="module" src="js/market.js"></script>
+</head>
+
+<body>
+  <div class="game-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="game-sidebar">
+
+      <section class="panel">
+        <div class="panel-inner">
+          <h2 style="margin:0 0 10px 0;">Jugador</h2>
+
+          <div class="kv">
+            <div class="k">Nombre</div>
+            <div class="v" id="player-name">-</div>
+          </div>
+
+          <div class="kv">
+            <div class="k">Créditos</div>
+            <div class="v"><span id="player-credits">0</span> cr</div>
+          </div>
+
+          <div class="kv">
+            <div class="k">Ubicación</div>
+            <div class="v" id="player-location">-</div>
+          </div>
+
+          <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+            <button id="back-btn" class="btn">Volver</button>
+            <button id="logout-btn" class="btn danger">Logout</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-inner">
+          <h2 style="margin:0 0 10px 0;">Mercado</h2>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button id="tab-buy" class="btn primary">Comprar</button>
+            <button id="tab-sell" class="btn">Vender</button>
+          </div>
+
+          <div style="margin-top:12px; opacity:.75; font-size:13px;">
+            Fee de publicación: <span id="fee-pct">-</span>
+          </div>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- MAIN -->
+    <main class="game-main">
+
+      <!-- BUY VIEW -->
+      <section id="buy-view" class="panel">
+        <div class="panel-inner">
+          <h2 style="margin:0 0 10px 0;">Comprar</h2>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <label style="opacity:.8;">Tipo</label>
+            <select id="buy-type" class="input" style="min-width:220px;"></select>
+
+            <input id="item" class="input" type="text" placeholder="Buscar por nombre..." style="flex:1; min-width:220px;" />
+            <button id="srch-btn" class="btn">Buscar</button>
+          </div>
+
+          <div id="srch-status" style="margin-top:8px; opacity:.7; font-size:13px;">
+            Mostrando listado default.
+          </div>
+
+          <div style="margin-top:12px;">
+            <div id="market-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SELL VIEW -->
+      <section id="sell-view" class="panel" style="display:none;">
+        <div class="panel-inner">
+          <h2 style="margin:0 0 10px 0;">Vender</h2>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div>
+              <label style="opacity:.8; display:block; margin-bottom:6px;">Item (bahía de carga)</label>
+              <select id="sell-item" class="input" style="width:100%;"></select>
+            </div>
+
+            <div>
+              <label style="opacity:.8; display:block; margin-bottom:6px;">Modo</label>
+              <select id="sell-mode" class="input" style="width:100%;">
+                <option value="direct">Venta directa (al mercado)</option>
+                <option value="listing" selected>Publicar en mercado (listing fijo)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="opacity:.8; display:block; margin-bottom:6px;">Cantidad</label>
+              <input id="sell-qty" class="input" type="number" min="1" value="1" style="width:100%;" />
+            </div>
+
+            <div>
+              <label style="opacity:.8; display:block; margin-bottom:6px;">Precio por unidad (listing)</label>
+              <input id="sell-price" class="input" type="number" min="1" placeholder="Precio por unidad" style="width:100%;" />
+            </div>
+          </div>
+
+          <div id="sell-fee" style="margin-top:10px; opacity:.75; font-size:13px;"></div>
+
+          <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+            <button id="sell-btn" class="btn primary">Confirmar</button>
+          </div>
+
+          <hr style="margin:16px 0; opacity:.2;" />
+
+          <h3 style="margin:0 0 10px 0;">Mis publicaciones</h3>
+          <div id="my-listings"></div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+</body>
+</html>
