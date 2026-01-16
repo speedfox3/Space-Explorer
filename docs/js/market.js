@@ -57,7 +57,6 @@ async function loadInventory() {
     .from("ships")
     .select("id")
     .eq("player_id", session.user.id)
-    .order("created_at", { ascending: true })
     .limit(1);
 
   if (shipErr) throw shipErr;
