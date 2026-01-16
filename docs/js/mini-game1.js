@@ -106,6 +106,7 @@ const mg = {
   visionRange: 10,  // lo que ves “sin escanear”
   scanRange: 25,    // lo que ves cuando apretás Escanear
   lastScanTs: 0,
+  scanActiveUntil: 0,
   hasMiningGear: false,
 
   // Nodos reales de BD (object_nodes join items)
@@ -509,6 +510,11 @@ async function startHarvest(nodeId) {
 }
 
 async function tick(ts) {
+  if (mg.scanActiveUntil && Date.now() > mg.scanActiveUntil) {
+  mg.scanActiveUntil = 0;
+  // re-scan en visión (sin spamear status)
+  doScan(false, false);
+}
   updateMovementUI(ts);
 // Si te estás moviendo, pausamos recolección (evita “farm mientras viaja”)
   if (mg.moving && mg.collecting) stopHarvest("Te moviste. Recolección detenida.");
@@ -517,7 +523,7 @@ async function tick(ts) {
 
     if (!node || node.remaining <= 0) {
       stopHarvest("El recurso se agotó.");
-      await doScan(false);
+      doScan(false, false);
       requestAnimationFrame(tick);
       return;
     }
@@ -572,8 +578,14 @@ async function doScan(showStatus = true, useScanRange = false) {
   await scanAndLoadNodes(range);
   renderDetected();
 
+  if (useScanRange) {
+    mg.lastScanTs = Date.now();
+    mg.scanActiveUntil = mg.lastScanTs + 12000; // 12s
+  }
+
   if (showStatus) setStatus(`Escaneo completado. Rango: ±${range}`);
 }
+
 
 
 // ----------------------
