@@ -20,12 +20,82 @@ function fmt(n) {
   return new Intl.NumberFormat("es-UY", { maximumFractionDigits: 0 }).format(n);
 }
 
+const SURFACE_MIN_X = 0;
+const SURFACE_MAX_X = 500;
+
+function clampX(x) {
+  if (!Number.isFinite(x)) return SURFACE_MIN_X;
+  return Math.max(SURFACE_MIN_X, Math.min(SURFACE_MAX_X, Math.floor(x)));
+}
+
+function hasTool(toolCode) {
+  // Ajustá según cómo guardes tools/equipamiento.
+  // 1) Si tu minijuego ya tiene mg.tools como array de strings:
+  if (Array.isArray(mg.tools) && mg.tools.includes(toolCode)) return true;
+
+  // 2) Si lo guardás en localStorage (ej):
+  try {
+    const s = JSON.parse(localStorage.getItem("player_tools") || "[]");
+    return Array.isArray(s) && s.includes(toolCode);
+  } catch {
+    return false;
+  }
+}
+
+// Regla: qué nodo es recolectable según herramientas
+function isNodeCollectable(node) {
+  if (node.node_type === "hand") return true;      // artefactos a mano
+  if (node.node_type === "vein") return mg.hasMiningGear; // vetas solo si tenés equipo
+  if (node.node_type === "gas") return true;       // si todavía no tenés tool de gas, dejalo en true
+  return false;
+}
+
+
+// Devuelve -1 (izq), +1 (der), 0 (misma X) del nodo más cercano recolectable
+function radarDirectionFromDetected() {
+  if (!Array.isArray(mg.nodes) || mg.nodes.length === 0) return null;
+
+  const collectable = mg.nodes.filter(isNodeCollectable);
+  if (collectable.length === 0) return null;
+
+  let best = null;
+  let bestDist = Infinity;
+
+  for (const n of collectable) {
+    const dx = (Number(n.x) || 0) - mg.surfaceX;
+    const d = Math.abs(dx);
+    if (d < bestDist) {
+      bestDist = d;
+      best = n;
+    }
+  }
+  if (!best) return null;
+
+  const dx = (Number(best.x) || 0) - mg.surfaceX;
+  if (dx < 0) return { dir: -1, node: best, dist: bestDist };
+  if (dx > 0) return { dir: 1, node: best, dist: bestDist };
+  return { dir: 0, node: best, dist: 0 };
+}
+
+
+function setRadarStatus(text) {
+  const el = document.getElementById("radar-status")
+          || document.getElementById("travel-status")
+          || document.getElementById("status")
+          || document.getElementById("srch-status");
+  if (el) el.textContent = text;
+}
+
+
+
+
 // ----------------------
 // MiniGame state
 // ----------------------
 const mg = {
   planetId: null,
   planet: null,
+  moving: null, // { fromX, toX, startTs, endTs }
 
   // plano X
   surfaceX: 0,
@@ -156,6 +226,32 @@ async function scanAndLoadNodes() {
   mg.nodes.sort((a, b) => Math.abs(a.x - mg.surfaceX) - Math.abs(b.x - mg.surfaceX));
 }
 
+async function onRadar() {
+  // si todavía no hay nodos cargados, escaneamos
+  if (!Array.isArray(mg.nodes) || mg.nodes.length === 0) {
+    await doScan(false);
+  }
+
+  const res = radarDirectionFromDetected();
+  if (!res) {
+    setRadarStatus("📡 Radar: no hay recursos recolectables en rango.");
+    return;
+  }
+
+  // Tip opcional: si querés, mostrás tipo y distancia aproximada (sin dar coordenadas exactas)
+  const label =
+    res.node.node_type === "hand" ? "artefacto"
+    : res.node.node_type === "vein" ? "veta"
+    : "recurso";
+
+  if (res.dir === -1) setRadarStatus(`📡 Radar: ${label} hacia la izquierda (←).`);
+  else if (res.dir === 1) setRadarStatus(`📡 Radar: ${label} hacia la derecha (→).`);
+  else setRadarStatus(`📡 Radar: ${label} en tu posición.`);
+}
+
+
+
+
 // ----------------------
 // Velocidad por distancia (unidades por segundo)
 // ----------------------
@@ -272,8 +368,7 @@ function renderDetected() {
       btn.addEventListener("click", async () => {
         const act = btn.getAttribute("data-act");
         if (act === "goto") {
-          moveToX(Number(btn.getAttribute("data-x")));
-          await doScan(false);
+          startMoveToX(Number(btn.getAttribute("data-x")));
           return;
         }
         if (act === "harvest") {
@@ -290,12 +385,60 @@ function renderDetected() {
 // Movimiento y recolección
 // ----------------------
 function moveToX(x) {
-  if (!Number.isFinite(x)) return;
-  mg.surfaceX = Math.floor(x);
+  mg.surfaceX = clampX(x);
   $("move-x").value = String(mg.surfaceX);
   setCoords();
   setStatus(`Te moviste a X=${mg.surfaceX}.`);
 }
+
+function surfaceTravelMs(distance) {
+  // Ajustá a gusto: 60ms por unidad (0..500 => 30s máximo aprox)
+  return Math.max(400, Math.floor(distance * 60));
+}
+
+function startMoveToX(targetX) {
+  const toX = clampX(targetX);
+  const fromX = mg.surfaceX;
+  const d = Math.abs(toX - fromX);
+
+  if (d === 0) {
+    setStatus(`Ya estás en X=${mg.surfaceX}.`);
+    return;
+  }
+
+  const now = performance.now();
+  const duration = surfaceTravelMs(d);
+
+  mg.moving = {
+    fromX,
+    toX,
+    startTs: now,
+    endTs: now + duration
+  };
+
+  setStatus(`Moviéndote a X=${toX}... (${Math.ceil(duration / 1000)}s)`);
+}
+
+function updateMovementUI(ts) {
+  if (!mg.moving) return;
+
+  const { fromX, toX, startTs, endTs } = mg.moving;
+  const t = Math.min(1, (ts - startTs) / (endTs - startTs));
+
+  // Interpolación lineal
+  mg.surfaceX = clampX(fromX + (toX - fromX) * t);
+  $("move-x").value = String(mg.surfaceX);
+  setCoords();
+
+  if (t >= 1) {
+    mg.surfaceX = toX;
+    mg.moving = null;
+    setStatus(`Llegaste a X=${mg.surfaceX}.`);
+    // Al llegar, re-scan opcional
+    doScan(false);
+  }
+}
+
 
 function findNode(nodeId) {
   return (mg.nodes || []).find(n => n.id === nodeId) || null;
@@ -353,6 +496,9 @@ async function startHarvest(nodeId) {
 }
 
 async function tick(ts) {
+  updateMovementUI(ts);
+// Si te estás moviendo, pausamos recolección (evita “farm mientras viaja”)
+  if (mg.moving && mg.collecting) stopHarvest("Te moviste. Recolección detenida.");
   if (mg.collecting) {
     const node = findNode(mg.collecting.nodeId);
 
@@ -446,6 +592,7 @@ async function deleteCharacterLikeMain() {
 }
 
 function bindUI() {
+  document.getElementById("radar-btn")?.addEventListener("click", onRadar);
   const logoutBtn = $("logout-btn");
   if (logoutBtn && !logoutBtn.dataset.bound) {
     logoutBtn.addEventListener("click", async () => {
@@ -458,8 +605,7 @@ function bindUI() {
   const moveBtn = $("move-btn");
   if (moveBtn && !moveBtn.dataset.bound) {
     moveBtn.addEventListener("click", async () => {
-      moveToX(Number($("move-x").value));
-      await doScan(false);
+      startMoveToX(Number($("move-x").value));
     });
     moveBtn.dataset.bound = "1";
   }
@@ -505,7 +651,8 @@ async function init() {
   }
 
   // aterrizaje (X aleatorio)
-  mg.surfaceX = Math.floor(Math.random() * 61) - 30;
+  mg.surfaceX = Math.floor(Math.random() * (SURFACE_MAX_X - SURFACE_MIN_X + 1)) + SURFACE_MIN_X;
+
   $("move-x").value = String(mg.surfaceX);
   setCoords();
 
