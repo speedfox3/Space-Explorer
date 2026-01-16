@@ -117,6 +117,14 @@ function bindUI() {
     logoutBtn.dataset.bound = "1";
   }
 
+  const marketBtn = document.getElementById("market-btn");
+if (marketBtn) {
+  marketBtn.addEventListener("click", () => {
+    window.location.href = "market.html";
+  });
+}
+
+
   const moveBtn = document.getElementById("move-btn");
   if (moveBtn && !moveBtn.dataset.bound) {
     moveBtn.addEventListener("click", handleMoveClick);

@@ -54,7 +54,7 @@ async function loadPlayer() {
 async function loadInventory() {
   const { data, error } = await supabaseClient
     .from("inventories")
-    .select("item_id, qty, items:items(id,name,rarity,type,base_price,stackable)")
+    .select("item_id, qty, items:items(id,name,rarity,type,base_value,stackable)")
     .eq("player_id", session.user.id)
     .gt("qty", 0)
     .order("qty", { ascending: false });
@@ -137,7 +137,7 @@ function updateSellFormHints() {
     }
     const unit = Math.max(1, Math.floor(basePrice * directSellPct));
     feeEl && (feeEl.textContent =
-      `Venta directa: ${fmt(unit)} cr/unidad (base_price * ${directSellPct}). No hay fee.`
+      `Venta directa: ${fmt(unit)} cr/unidad (base_value * ${directSellPct}). No hay fee.`
     );
   } else {
     if (priceEl) {
