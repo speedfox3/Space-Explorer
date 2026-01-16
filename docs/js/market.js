@@ -61,7 +61,7 @@ async function loadInventory() {
     .eq("player_id", session.user.id)
     .limit(1);
   const shipId = ships?.[0]?.id;     // <- primero se declara
-  
+
   if (shipErr) throw shipErr;
 
   currentShipId = shipId || null;    // <- ahora sí
@@ -380,11 +380,12 @@ async function onSell() {
     const price = Number($("sell-price")?.value || 0);
     if (!Number.isFinite(price) || price <= 0) return alert("Precio inválido.");
 
-    const { error } = await supabaseClient.rpc("create_listing", {
-      p_item_id: itemId,
-      p_qty: qty,
-      p_price_per_unit: price
-    });
+  const { error } = await supabaseClient.rpc("create_listing_ship", {
+  p_ship_id: currentShipId,
+  p_item_id: itemId,
+  p_qty: qty,
+  p_price_per_unit: price
+});
     if (error) throw error;
 
     await loadPlayer();        // fee deducted
