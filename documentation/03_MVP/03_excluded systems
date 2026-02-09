@@ -1,0 +1,185 @@
+## 1. Propósito de este documento
+
+Este documento define explícitamente **qué sistemas quedan fuera del MVP**, aun cuando:
+
+- estén diseñados en documentos previos
+- sean deseables a largo plazo
+- estén parcialmente pensados o prototipados
+
+La exclusión de un sistema **no implica su descarte**, sino su postergación deliberada.
+
+Este documento existe para:
+- evitar el crecimiento descontrolado del alcance
+- proteger el foco del MVP
+- facilitar decisiones claras durante el desarrollo
+
+---
+
+## 2. Principio general de exclusión
+
+Todo sistema que:
+- no contribuya directamente al loop central
+- no sea necesario para validar la experiencia base
+- agregue complejidad sin aportar aprendizaje inmediato
+
+queda fuera del MVP.
+
+El criterio no es “qué tan interesante es el sistema”, sino:
+> **qué tan necesario es para validar el juego**.
+
+---
+
+## 3. Sistemas excluidos del MVP
+
+### 3.1 Roles formales de jugador
+
+Quedan excluidos:
+- Clases, profesiones o roles explícitos
+- Selección inicial de rol
+- Bonificaciones asociadas a roles
+
+La especialización en el MVP es **emergente**, basada únicamente en decisiones del jugador.
+
+---
+
+### 3.2 Razas / facciones
+
+No se incluyen:
+- Múltiples razas jugables
+- Habilidades innatas raciales
+- Diferenciación narrativa o mecánica por raza
+
+El MVP utiliza una única “base neutra” de jugador.
+
+---
+
+### 3.3 Progresión numérica explícita
+
+Quedan fuera:
+- Niveles de jugador
+- Árboles de habilidades
+- Mejoras estadísticas permanentes
+- XP o sistemas equivalentes
+
+La progresión del MVP es **cognitiva**, no numérica.
+
+---
+
+### 3.4 Personalización avanzada de naves
+
+No se incluyen:
+- Múltiples cascos
+- Módulos intercambiables
+- Builds complejas
+- Optimización avanzada de estadísticas
+
+La nave del MVP es funcional, no configurable.
+
+---
+
+### 3.5 Economía avanzada
+
+Quedan excluidos:
+- Mercados dinámicos complejos
+- Subastas
+- Contratos
+- Especulación
+- Comercio entre jugadores
+
+La economía del MVP se limita a venta directa simple.
+
+---
+
+### 3.6 Producción y cadenas de valor
+
+No se incluyen:
+- Refinamiento de recursos
+- Manufactura
+- Transformación de materiales
+- Dependencias entre recursos
+
+Los recursos del MVP son atómicos y finales.
+
+---
+
+### 3.7 Eventos globales o persistentes complejos
+
+Quedan fuera:
+- Eventos temporales
+- Cambios de estado del universo
+- Impacto colectivo de jugadores
+- Simulación a gran escala
+
+El universo del MVP es local y controlado.
+
+---
+
+### 3.8 Multijugador y sistemas sociales
+
+No se incluyen:
+- Interacción directa entre jugadores
+- Cooperación
+- Competencia
+- Chat o sistemas sociales
+
+El MVP es una experiencia individual.
+
+---
+
+### 3.9 Narrativa estructurada
+
+Queda fuera:
+- Historia principal
+- Misiones narrativas
+- Personajes relevantes
+- Diálogos extensos
+
+El MVP solo presenta **contexto mínimo implícito**.
+
+---
+
+### 3.10 Minijuegos complejos
+
+No se incluyen:
+- Variantes múltiples de minijuegos
+- Sistemas de habilidad profunda
+- Curvas de maestría largas
+
+El MVP utiliza una única forma de interacción simple.
+
+---
+
+## 4. Sistemas latentes (no activos)
+
+Algunos sistemas pueden existir a nivel conceptual o de datos, pero **no son accesibles ni visibles** para el jugador:
+
+- Recursos no utilizados
+- Tipos de señales no activados
+- Flags de progresión deshabilitados
+
+Estos sistemas no deben afectar el loop jugable del MVP.
+
+---
+
+## 5. Regla de incorporación futura
+
+Un sistema excluido solo podrá incorporarse en una actualización futura si:
+
+- Refuerza el loop central existente
+- No invalida decisiones previas del jugador
+- Puede integrarse sin romper sistemas del MVP
+
+Si un sistema requiere reescribir el MVP para existir, su diseño debe ser cuestionado.
+
+---
+
+## 6. Valor estratégico de la exclusión
+
+Este documento es una herramienta activa de diseño.
+
+Si durante el desarrollo surge la pregunta:
+> “¿Y si agregamos…?”
+
+La respuesta debe buscarse aquí antes de avanzar.
+
+Decir “no” en esta etapa es una decisión de diseño, no una limitación.
