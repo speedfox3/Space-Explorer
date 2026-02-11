@@ -1,3 +1,5 @@
+import SignalQuality from './SignalQuality';
+
 export default function SignalsList({ signals, busy, onAnalyze }: any) {
   return (
     <>
@@ -5,7 +7,8 @@ export default function SignalsList({ signals, busy, onAnalyze }: any) {
       <ul>
         {signals.map((s: any) => (
           <li key={s.id}>
-            {s.type}
+            {s.type} – <SignalQuality uncertainty={s.uncertainty} />
+            <div>Distance: {s.distanceToTarget}</div>
             <button disabled={busy} onClick={() => onAnalyze(s.id)}>
               Analyze
             </button>
