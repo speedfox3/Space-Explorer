@@ -2,18 +2,18 @@
 
 up:
 	@echo "🚀 Starting backend..."
-	cd mmo_backend/server && docker compose up -d --build
+	 docker compose up -d --build
 	@echo "⚛️ Starting frontend..."
 	cd mmo_frontend && npm install && npm run dev
 
 backend:
-	cd mmo_backend/server && docker compose up --build
+	 docker compose up --build
 
 frontend:
 	cd mmo_frontend && npm install && npm run dev
 
 down:
-	cd mmo_backend/server && docker compose down
+	 docker compose down
 
 clean:
-	cd mmo_backend/server && docker compose down -v
+	 docker compose down -v
