@@ -1,6 +1,7 @@
 export type SignalType =
   | 'ancient_probe'
   | 'debris_field'
+  | 'distress_call'
   | 'planet_signature';
 
 export interface Signal {

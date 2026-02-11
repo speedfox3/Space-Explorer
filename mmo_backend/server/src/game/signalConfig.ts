@@ -1,4 +1,4 @@
-import { SignalType } from '../models/signals.js';
+import { SignalType } from '../models/Signal.js';
 
 export interface SignalConfig {
   ticks: number;
@@ -26,4 +26,10 @@ export const SIGNAL_CONFIG: Record<SignalType, SignalConfig> = {
     successChance: 0.4,
     reward: 'resource_C',
   },
+  planet_signature: {
+  ticks: 6,
+  fuelCost: 8,
+  successChance: 0.65,
+  reward: 'planet_data',
+},
 };

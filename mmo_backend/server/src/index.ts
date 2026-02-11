@@ -1,22 +1,20 @@
 import express from 'express';
 import cors from 'cors';
-
-import { startTickLoop } from './tick/tickLoop.js';
-import { actionRouter } from './api/actions.js';
-import { stateRouter } from './api/state.js';
-import { analyzeRouter } from './api/analyze.js';
+import { createSystem } from './world/universe.js';
+import { scanSystem } from './world/scan.js';
 
 const app = express();
-
-app.use(cors({ origin: 'http://localhost:5173' }));
+app.use(cors());
 app.use(express.json());
 
-app.use('/actions', actionRouter);
-app.use('/state', stateRouter);
-app.use('/analyze', analyzeRouter);
+createSystem('alpha');
 
-startTickLoop(); // 🔥 ESTO ES CLAVE
+app.post('/scan', (req, res) => {
+  const { x, y } = req.body;
+  const results = scanSystem('alpha', x, y);
+  res.json(results);
+});
 
 app.listen(3000, () => {
-  console.log('Server running on port 3000');
+  console.log('World-centric server running on port 3000');
 });

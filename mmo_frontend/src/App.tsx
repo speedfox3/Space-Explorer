@@ -1,53 +1,34 @@
-import { useEffect, useState } from 'react';
-import { getState, scan, analyze } from './api';
-import PlayerStatus from './components/PlayerStatus';
-import SignalsList from './components/SignalsList';
-import AnalysesList from './components/AnalysesList';
-import Minigame from './components/Minigame';
-import SolarMap from './components/SolarMap';
-
-const PLAYER_ID = 'player1';
+import { useState } from 'react';
+import { scan } from './api';
 
 export default function App() {
-  const [state, setState] = useState<any>(null);
-  const [minigameOpen, setMinigameOpen] = useState(false);
+  const [x, setX] = useState(0);
+  const [y, setY] = useState(0);
+  const [signals, setSignals] = useState<any[]>([]);
 
-  const refresh = async () => {
-    setState(await getState(PLAYER_ID));
-  };
-
-  useEffect(() => {
-    refresh();
-    const i = setInterval(refresh, 1000);
-    return () => clearInterval(i);
-  }, []);
-
-  if (!state) return <div>Loading...</div>;
-  const busy = !!state.currentAction;
+  async function handleScan() {
+    const results = await scan(x, y);
+    setSignals(results);
+  }
 
   return (
     <div style={{ padding: 20 }}>
-      <PlayerStatus state={state} />
+      <h2>2D Exploration</h2>
 
-      <button disabled={busy} onClick={() => scan(PLAYER_ID)}>
-        Scan
-      </button>
+      <div>
+        X: <input type="number" value={x} onChange={e => setX(Number(e.target.value))} />
+        Y: <input type="number" value={y} onChange={e => setY(Number(e.target.value))} />
+        <button onClick={handleScan}>Scan</button>
+      </div>
 
-      <SignalsList
-        signals={state.signals}
-        busy={busy}
-        onAnalyze={(id: string) => {
-          analyze(PLAYER_ID, id);
-          setMinigameOpen(true);
-        }}
-      />
-
-      <AnalysesList analyses={state.analyses} />
-      <SolarMap signals={state.signals} />
-
-      {minigameOpen && (
-        <Minigame onClose={() => setMinigameOpen(false)} />
-      )}
+      <h3>Signals</h3>
+      <ul>
+        {signals.map((s, i) => (
+          <li key={i}>
+            {s.objectId} – {s.quality} – Distance: {s.distance}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

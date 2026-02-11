@@ -1,4 +1,4 @@
-import { Signal } from './signals.js';
+import { Signal } from './Signal.js';
 import { SignalAnalysis } from './signalAnalysis.js';
 
 export interface Player {
