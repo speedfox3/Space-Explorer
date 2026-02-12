@@ -1,0 +1,9 @@
+services:
+  server:
+    build:
+      context: ./mmo_backend/server
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./mmo_backend/server/.env

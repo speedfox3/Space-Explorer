@@ -1,16 +1,14 @@
-export const getState = async (playerId: string) =>
-  (await fetch(`/state/${playerId}`)).json();
 
-export const scan = async (playerId: string) =>
-  fetch('/actions/scan', {
+export async function getPlayer(id: string) {
+  const res = await fetch(`/player/${id}`);
+  return res.json();
+}
+
+export async function move(playerId: string, x: number, y: number) {
+  const res = await fetch('/move', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ playerId })
+    body: JSON.stringify({ playerId, x, y })
   });
-
-export const analyze = async (playerId: string, signalId: string) =>
-  fetch('/analyze', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ playerId, signalId })
-  });
+  return res.json();
+}
