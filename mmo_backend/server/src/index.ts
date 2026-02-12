@@ -22,38 +22,35 @@ repo.save({
   radarActive: false
 });
 
+wss.on("connection", ws => {
+  ws.send(JSON.stringify(world.getState()));
+});
+
 function broadcast() {
-  const state = world.getState("player1");
-  const data = JSON.stringify(state);
-  wss.clients.forEach(client => {
-    if (client.readyState === 1) {
-      client.send(data);
-    }
+  const state = JSON.stringify(world.getState());
+  wss.clients.forEach(c=>{
+    if (c.readyState===1) c.send(state);
   });
 }
 
-wss.on("connection", ws => {
-  ws.send(JSON.stringify(world.getState("player1")));
+app.post("/api/move",(req,res)=>{
+  world.move(req.body.dx, req.body.dy);
+  res.json({ok:true});
 });
 
-app.post("/api/move", (req, res) => {
-  world.enqueueAction({ type: "MOVE", ...req.body });
-  res.json({ ok: true });
+app.post("/api/radar",(req,res)=>{
+  world.toggleRadar();
+  res.json({ok:true});
 });
 
-app.post("/api/radar/toggle", (req, res) => {
-  world.enqueueAction({ type: "TOGGLE_RADAR", ...req.body });
-  res.json({ ok: true });
+app.post("/api/interact",(req,res)=>{
+  world.interact(req.body.objectId);
+  res.json({ok:true});
 });
 
-app.post("/api/analyze", (req, res) => {
-  world.enqueueAction({ type: "ANALYZE", ...req.body });
-  res.json({ ok: true });
-});
-
-setInterval(() => {
+setInterval(()=>{
   world.tick();
   broadcast();
-}, 1000);
+},1000);
 
-server.listen(3000, () => console.log("Phase 1 MMO running on 3000"));
+server.listen(3000,()=>console.log("Phase 1.5 system online"));
