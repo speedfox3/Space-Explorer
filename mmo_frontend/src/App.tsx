@@ -1,42 +1,50 @@
+import { useEffect, useState } from "react";
 
-import { useEffect, useState } from 'react';
-import React from "react";
-import { getPlayer, move } from './api';
-
-const PLAYER_ID = 'player1';
+interface Player {
+  id: string;
+  x: number;
+  y: number;
+}
 
 export default function App() {
-  const [player, setPlayer] = useState<any>(null);
-  const [x, setX] = useState(0);
-  const [y, setY] = useState(0);
+  const [player, setPlayer] = useState<Player | null>(null);
 
-  async function refresh() {
-    const data = await getPlayer(PLAYER_ID);
+  async function fetchPlayer() {
+    const res = await fetch("/api/player/player1");
+    const data = await res.json();
     setPlayer(data);
   }
 
+  async function move(dx: number, dy: number) {
+    await fetch("/api/move", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ playerId: "player1", dx, dy })
+    });
+  }
+
   useEffect(() => {
-    refresh();
-    const interval = setInterval(refresh, 1000);
+    fetchPlayer();
+    const interval = setInterval(fetchPlayer, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  if (!player) return <div>Loading...</div>;
-
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Player Movement</h2>
+    <div style={{ padding: 40, fontFamily: "Arial" }}>
+      <h1>🚀 Space Explorer Prototype</h1>
 
-      <p>Position: ({player.x.toFixed(1)}, {player.y.toFixed(1)})</p>
-      <p>Energy: {player.energy.toFixed(1)}</p>
+      {player && (
+        <div>
+          <h2>Position: ({player.x}, {player.y})</h2>
 
-      <div>
-        X: <input type="number" value={x} onChange={e => setX(Number(e.target.value))} />
-        Y: <input type="number" value={y} onChange={e => setY(Number(e.target.value))} />
-        <button onClick={async () => { await move(PLAYER_ID, x, y); refresh(); }}>
-          Move
-        </button>
-      </div>
+          <div style={{ marginTop: 20 }}>
+            <button onClick={() => move(0, -1)}>Up</button>
+            <button onClick={() => move(-1, 0)}>Left</button>
+            <button onClick={() => move(1, 0)}>Right</button>
+            <button onClick={() => move(0, 1)}>Down</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

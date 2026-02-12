@@ -5,11 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/player': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-      '/move': {
+      '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,
       }

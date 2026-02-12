@@ -11,28 +11,20 @@ export class WorldEngine {
 
   tick() {
     this.processActions();
-    this.processMovement();
-    this.processEnergy();
   }
 
   private processActions() {
     while (this.actionQueue.length > 0) {
       const action = this.actionQueue.shift();
-      console.log("Processing action:", action);
-    }
-  }
 
-  private processMovement() {
-    const players = this.playerRepo.getAll();
-    for (const player of players) {
-      // TODO
-    }
-  }
-
-  private processEnergy() {
-    const players = this.playerRepo.getAll();
-    for (const player of players) {
-      // TODO
+      if (action.type === "MOVE") {
+        const player = this.playerRepo.getById(action.playerId);
+        if (player) {
+          player.x += action.dx;
+          player.y += action.dy;
+          this.playerRepo.save(player);
+        }
+      }
     }
   }
 }
