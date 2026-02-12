@@ -5,4 +5,5 @@ export interface Player {
   energy: number;
   maxEnergy: number;
   radarActive: boolean;
+  radarRange: number;
 }

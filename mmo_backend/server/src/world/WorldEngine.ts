@@ -3,13 +3,12 @@ import { SpaceObject } from "../domain/models/SpaceObject";
 
 const SYSTEM_SIZE = 200;
 const HALF = 100;
-const RADAR_RANGE = 40;
 const INTERACT_RADIUS = 5;
 
 export class WorldEngine {
 
   private objects: SpaceObject[] = [];
-  private stars: {x:number,y:number}[] = [];
+  private stars: {x:number,y:number,layer:number}[] = [];
 
   constructor(private repo: MemoryPlayerRepository) {
     this.generateSystem();
@@ -28,10 +27,11 @@ export class WorldEngine {
       });
     }
 
-    for (let i=0;i<400;i++) {
+    for (let i=0;i<600;i++) {
       this.stars.push({
-        x: Math.random()*SYSTEM_SIZE - HALF,
-        y: Math.random()*SYSTEM_SIZE - HALF
+        x: Math.random()*SYSTEM_SIZE*3 - SYSTEM_SIZE*1.5,
+        y: Math.random()*SYSTEM_SIZE*3 - SYSTEM_SIZE*1.5,
+        layer: Math.random() < 0.33 ? 0.3 : (Math.random() < 0.66 ? 0.6 : 1)
       });
     }
   }
@@ -41,8 +41,7 @@ export class WorldEngine {
     if (!p) return;
 
     if (p.energy < p.maxEnergy) {
-      let regen = 0.8;
-      if (p.radarActive) regen = 0.3;
+      let regen = p.radarActive ? 0.3 : 0.8;
       p.energy = Math.min(p.maxEnergy, p.energy + regen);
       this.repo.save(p);
     }
@@ -52,14 +51,8 @@ export class WorldEngine {
     const p = this.repo.get("player1");
     if (!p) return;
 
-    let newX = p.x + dx;
-    let newY = p.y + dy;
-
-    newX = Math.max(-HALF, Math.min(HALF, newX));
-    newY = Math.max(-HALF, Math.min(HALF, newY));
-
-    p.x = newX;
-    p.y = newY;
+    p.x = Math.max(-HALF, Math.min(HALF, p.x + dx));
+    p.y = Math.max(-HALF, Math.min(HALF, p.y + dy));
 
     if (p.radarActive) {
       p.energy -= 1;
@@ -79,17 +72,33 @@ export class WorldEngine {
     this.repo.save(p);
   }
 
-  interact(objectId:string) {
+  getClosestUndiscovered() {
     const p = this.repo.get("player1");
-    if (!p) return;
+    if (!p) return null;
 
-    const obj = this.objects.find(o=>o.id===objectId);
-    if (!obj) return;
+    const candidates = this.objects.filter(o => !o.discovered);
+    if (!candidates.length) return null;
 
-    const dist = Math.hypot(obj.x - p.x, obj.y - p.y);
+    let closest = candidates[0];
+    let minDist = Infinity;
 
-    if (dist <= INTERACT_RADIUS) {
-      obj.discovered = true;
+    for (const o of candidates) {
+      const d = Math.hypot(o.x - p.x, o.y - p.y);
+      if (d < minDist) {
+        minDist = d;
+        closest = o;
+      }
+    }
+
+    return { object: closest, distance: minDist };
+  }
+
+  interact() {
+    const target = this.getClosestUndiscovered();
+    if (!target) return;
+
+    if (target.distance <= INTERACT_RADIUS) {
+      target.object.discovered = true;
     }
   }
 
@@ -97,22 +106,15 @@ export class WorldEngine {
     const p = this.repo.get("player1");
     if (!p) return null;
 
-    const visibleObjects = p.radarActive
-      ? this.objects.filter(o => {
-          const d = Math.hypot(o.x - p.x, o.y - p.y);
-          return d <= RADAR_RANGE;
-        })
-      : [];
+    const radarData = p.radarActive ? this.getClosestUndiscovered() : null;
+
+    const canInteract = radarData ? radarData.distance <= INTERACT_RADIUS : false;
 
     return {
       player: p,
-      objects: visibleObjects,
+      radar: radarData,
       stars: this.stars,
-      constants: {
-        systemSize: SYSTEM_SIZE,
-        radarRange: RADAR_RANGE,
-        interactRadius: INTERACT_RADIUS
-      }
+      canInteract
     };
   }
 }

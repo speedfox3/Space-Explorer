@@ -15,16 +15,16 @@ export default function App() {
     const ctx=canvas?.getContext("2d");
     if(!ctx)return;
 
-    ctx.fillStyle="black";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-
     const centerX=canvas.width/2;
     const centerY=canvas.height/2;
 
-    ctx.fillStyle="white";
+    ctx.fillStyle="black";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
     state.stars.forEach((s:any)=>{
-      const x=centerX+(s.x-state.player.x)*2;
-      const y=centerY+(s.y-state.player.y)*2;
+      const x=centerX+(s.x-state.player.x)*s.layer*2;
+      const y=centerY+(s.y-state.player.y)*s.layer*2;
+      ctx.fillStyle="white";
       ctx.fillRect(x,y,1,1);
     });
 
@@ -33,20 +33,49 @@ export default function App() {
     ctx.arc(centerX,centerY,6,0,Math.PI*2);
     ctx.fill();
 
-    state.objects.forEach((o:any)=>{
-      const x=centerX+(o.x-state.player.x)*2;
-      const y=centerY+(o.y-state.player.y)*2;
-      ctx.fillStyle=o.discovered?"red":"yellow";
+    if(state.player.radarActive && state.radar){
+      const {object,distance}=state.radar;
+      const dx=object.x-state.player.x;
+      const dy=object.y-state.player.y;
+      const mag=Math.hypot(dx,dy);
+      const nx=dx/mag;
+      const ny=dy/mag;
+
+      const intensity=1-(distance/state.player.radarRange);
+      ctx.strokeStyle=`rgba(0,150,255,${Math.max(0,intensity)})`;
+      ctx.lineWidth=2;
       ctx.beginPath();
-      ctx.arc(x,y,5,0,Math.PI*2);
-      ctx.fill();
-    });
+      ctx.moveTo(centerX,centerY);
+      ctx.lineTo(centerX+nx*70,centerY+ny*70);
+      ctx.stroke();
+      // Dynamic uncertainty cloud
+if (distance < state.player.radarRange * 0.6) {
+
+  const proximityFactor = 1 - (distance / state.player.radarRange);
+  const uncertaintyRadius = 60 * (1 - proximityFactor);
+
+  ctx.fillStyle = "rgba(255,255,0,0.08)";
+
+  for (let i = 0; i < 250; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = Math.random() * uncertaintyRadius;
+
+    const worldOffsetX = (object.x - state.player.x) * 2;
+    const worldOffsetY = (object.y - state.player.y) * 2;
+
+    const x = centerX + worldOffsetX + Math.cos(angle) * radius;
+    const y = centerY + worldOffsetY + Math.sin(angle) * radius;
+
+    ctx.fillRect(x, y, 2, 2);
+  }
+}
+    }
 
   },[state]);
 
   if(!state)return <div style={{color:"white"}}>Loading...</div>;
 
-  const {player,objects}=state;
+  const {player,canInteract}=state;
 
   async function move(dx:number,dy:number){
     await fetch("/api/move",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({dx,dy})});
@@ -56,39 +85,61 @@ export default function App() {
     await fetch("/api/radar",{method:"POST"});
   }
 
-  async function interact(id:string){
-    await fetch("/api/interact",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({objectId:id})});
+  async function interact(){
+    await fetch("/api/interact",{method:"POST"});
   }
 
+  const buttonStyle={
+    fontSize:"18px",
+    padding:"10px 16px",
+    margin:"4px"
+  };
+
   return (
-    <div style={{background:"#000",color:"white",minHeight:"100vh",padding:20}}>
-      <h1>🚀 Phase 1.5 Solar System</h1>
+    <div style={{background:"#000",color:"white",minHeight:"100vh",padding:15}}>
+      <h2 style={{fontSize:"28px"}}>🚀 Phase 1.7 Radar System</h2>
 
-      <div>Position: ({player.x},{player.y})</div>
-
-      <div style={{width:200,height:15,background:"#333",marginTop:10}}>
-        <div style={{width:(player.energy/player.maxEnergy)*100+"%",height:"100%",background:"lime",transition:"width 0.5s"}}/>
+      <div style={{fontSize:"18px"}}>
+        Position: ({player.x.toFixed(1)},{player.y.toFixed(1)})
       </div>
 
-      <div style={{marginTop:10}}>
-        <button onClick={()=>move(0,-2)}>Up</button>
-        <button onClick={()=>move(-2,0)}>Left</button>
-        <button onClick={()=>move(2,0)}>Right</button>
-        <button onClick={()=>move(0,2)}>Down</button>
-        <button onClick={radar}>Radar</button>
+      <div style={{width:"100%",height:16,background:"#333",marginTop:10}}>
+        <div style={{width:(player.energy/player.maxEnergy)*100+"%",height:"100%",background:"lime"}}/>
       </div>
 
-      <canvas ref={canvasRef} width={800} height={800} style={{border:"1px solid lime",marginTop:20}}/>
+      <div style={{marginTop:12}}>
+        <button style={buttonStyle} onClick={()=>move(0,-2)}>↑</button>
+        <button style={buttonStyle} onClick={()=>move(-2,0)}>←</button>
+        <button style={buttonStyle} onClick={()=>move(2,0)}>→</button>
+        <button style={buttonStyle} onClick={()=>move(0,2)}>↓</button>
 
-      <div style={{marginTop:20}}>
-        {objects.map((o:any)=>{
-          const d=Math.hypot(o.x-player.x,o.y-player.y);
-          if(d<=state.constants.interactRadius){
-            return <div key={o.id}>{o.type} <button onClick={()=>interact(o.id)}>Interact</button></div>
-          }
-          return null;
-        })}
+        <button 
+          style={{
+            ...buttonStyle,
+            background:player.radarActive?"#0077ff":"#444",
+            color:"white"
+          }}
+          onClick={radar}>
+          Radar
+        </button>
+
+        <button 
+          style={{
+            ...buttonStyle,
+            background:canInteract?"#00aa00":"#444",
+            color:"white"
+          }}
+          onClick={interact}>
+          Interact
+        </button>
       </div>
+
+      <canvas 
+        ref={canvasRef} 
+        width={900} 
+        height={500} 
+        style={{border:"1px solid #0f0",marginTop:15,width:"100%",maxHeight:"70vh"}}
+      />
 
     </div>
   );

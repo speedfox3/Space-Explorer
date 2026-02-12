@@ -19,7 +19,8 @@ repo.save({
   y: 0,
   energy: 100,
   maxEnergy: 100,
-  radarActive: false
+  radarActive: false,
+  radarRange: 40
 });
 
 wss.on("connection", ws => {
@@ -44,7 +45,7 @@ app.post("/api/radar",(req,res)=>{
 });
 
 app.post("/api/interact",(req,res)=>{
-  world.interact(req.body.objectId);
+  world.interact();
   res.json({ok:true});
 });
 
@@ -53,4 +54,4 @@ setInterval(()=>{
   broadcast();
 },1000);
 
-server.listen(3000,()=>console.log("Phase 1.5 system online"));
+server.listen(3000,()=>console.log("Phase 1.7 online"));
