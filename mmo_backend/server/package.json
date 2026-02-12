@@ -8,11 +8,13 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.39.3",
     "cors": "^2.8.6",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.21",
+    "@types/ws": "^8.18.1",
     "typescript": "^5.3.3"
   }
 }

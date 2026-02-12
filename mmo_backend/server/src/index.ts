@@ -22,13 +22,18 @@ repo.save({
   radarActive: false
 });
 
-wss.on("connection", ws => {
-  const interval = setInterval(() => {
-    const state = world.getState("player1");
-    ws.send(JSON.stringify(state));
-  }, 1000);
+function broadcast() {
+  const state = world.getState("player1");
+  const data = JSON.stringify(state);
+  wss.clients.forEach(client => {
+    if (client.readyState === 1) {
+      client.send(data);
+    }
+  });
+}
 
-  ws.on("close", () => clearInterval(interval));
+wss.on("connection", ws => {
+  ws.send(JSON.stringify(world.getState("player1")));
 });
 
 app.post("/api/move", (req, res) => {
@@ -46,6 +51,9 @@ app.post("/api/analyze", (req, res) => {
   res.json({ ok: true });
 });
 
-setInterval(() => world.tick(), 1000);
+setInterval(() => {
+  world.tick();
+  broadcast();
+}, 1000);
 
-server.listen(3000, () => console.log("Realtime MMO running on 3000"));
+server.listen(3000, () => console.log("Phase 1 MMO running on 3000"));

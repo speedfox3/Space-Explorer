@@ -1,12 +1,12 @@
 import { PlayerRepository } from "../domain/repositories/PlayerRepository";
+import { Signal } from "../domain/models/Signal";
 
 export class WorldEngine {
   private actionQueue: any[] = [];
-  private activeAnalyzes: any[] = [];
 
-  private worldObjects = [
-    { id: "signal1", x: 8, y: 4 },
-    { id: "signal2", x: -10, y: -3 }
+  private signals: Signal[] = [
+    { id: "signal1", realX: 12, realY: 6, uncertainty: 20, discovered: false },
+    { id: "signal2", realX: -15, realY: -8, uncertainty: 20, discovered: false }
   ];
 
   constructor(private repo: PlayerRepository) {}
@@ -17,7 +17,6 @@ export class WorldEngine {
 
   tick() {
     this.processActions();
-    this.processAnalyzes();
   }
 
   private processActions() {
@@ -37,6 +36,7 @@ export class WorldEngine {
             p.radarActive = false;
           }
         }
+
         this.repo.save(p);
       }
 
@@ -47,37 +47,35 @@ export class WorldEngine {
 
       if (a.type === "ANALYZE" && p.energy >= 5) {
         p.energy -= 5;
-        this.activeAnalyzes.push({
-          playerId: p.id,
-          targetId: a.targetId,
-          progress: 0
-        });
+
+        const signal = this.signals.find(s => s.id === a.targetId);
+        if (signal && !signal.discovered) {
+          signal.uncertainty *= 0.6;
+          if (signal.uncertainty < 2) {
+            signal.discovered = true;
+            signal.uncertainty = 0;
+          }
+        }
+
         this.repo.save(p);
       }
     }
-  }
-
-  private processAnalyzes() {
-    for (const a of this.activeAnalyzes) {
-      a.progress += 1;
-    }
-    this.activeAnalyzes = this.activeAnalyzes.filter(a => a.progress < 5);
   }
 
   getState(playerId: string) {
     const p = this.repo.getById(playerId);
     if (!p) return null;
 
-    const contacts = p.radarActive
-      ? this.worldObjects.map(obj => ({
-          id: obj.id,
-          approxX: obj.x + (Math.random() * 6 - 3),
-          approxY: obj.y + (Math.random() * 6 - 3)
+    const visibleSignals = p.radarActive
+      ? this.signals.map(s => ({
+          id: s.id,
+          realX: s.realX,
+          realY: s.realY,
+          uncertainty: s.uncertainty,
+          discovered: s.discovered
         }))
       : [];
 
-    const analyze = this.activeAnalyzes.find(a => a.playerId === playerId) || null;
-
-    return { player: p, contacts, analyze };
+    return { player: p, signals: visibleSignals };
   }
 }

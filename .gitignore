@@ -1,6 +1,6 @@
 node_modules/
-.env
-.env.*
-!.env.example
+/mmo_backend/server/.env
+/mmo_backend/server/.env.*
+/mmo_backend/server/!.env.example
 dist/
 build/
