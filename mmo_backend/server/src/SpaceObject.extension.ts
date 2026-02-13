@@ -1,17 +1,17 @@
+
 export type ObjectType = "planet" | "asteroid" | "derelict" | "wormhole";
 
 export interface SpaceObject {
   id: string;
   type: ObjectType;
+  level: number;
   x: number;
   y: number;
-  level?: number;
-  discovered: boolean;
   baseValue: number;
   baseResources: number;
   status: "undiscovered" | "claimed";
   claimedBy?: string;
-  multiplier?: number;
+  valueMultiplier?: number;
   finalValue?: number;
   finalResources?: number;
 }

@@ -1,8 +1,16 @@
 import { useEffect, useRef, useState } from "react";
+import MinigameModal from "./components/MinigameModal";
+import WormholeModal from "./components/WormholeModal";
 
 export default function App() {
   const [state,setState]=useState<any>(null);
   const canvasRef=useRef<HTMLCanvasElement>(null);
+  const [showMinigame, setShowMinigame] = useState(false);
+  const [currentObject, setCurrentObject] = useState<any>(null);
+  const [canAnalyze, setCanAnalyze] = useState(false);
+  const [claimedObjects, setClaimedObjects] = useState<any[]>([]);
+  const [showWormhole, setShowWormhole] = useState(false);
+
 
   useEffect(()=>{
     const ws=new WebSocket("ws://localhost:3000");
@@ -18,13 +26,13 @@ export default function App() {
     const centerX=canvas.width/2;
     const centerY=canvas.height/2;
 
-    ctx.fillStyle="black";
+    ctx.fillStyle = state.systemBackground || "black";
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
     state.stars.forEach((s:any)=>{
       const x=centerX+(s.x-state.player.x)*s.layer*2;
       const y=centerY+(s.y-state.player.y)*s.layer*2;
-      ctx.fillStyle="white";
+      ctx.fillStyle = state.starColor || "white";
       ctx.fillRect(x,y,1,1);
     });
 
@@ -85,9 +93,26 @@ if (distance < state.player.radarRange * 0.6) {
     await fetch("/api/radar",{method:"POST"});
   }
 
-  async function interact(){
-    await fetch("/api/interact",{method:"POST"});
+function interact(){
+  console.log("Interact clicked");
+  console.log("Radar object:", state.radar?.object);
+  console.log("CanInteract:", canInteract);
+  if (!canInteract) return;
+
+  const radarObject = state.radar?.object;
+
+  if (radarObject?.type === "wormhole") {
+    setCurrentObject(radarObject);
+    setShowWormhole(true);
+    return;
   }
+
+  if (radarObject?.status === "undiscovered") {
+    setCurrentObject(radarObject);
+    setShowMinigame(true);
+  }
+}
+
 
   const buttonStyle={
     fontSize:"18px",
@@ -96,15 +121,28 @@ if (distance < state.player.radarRange * 0.6) {
   };
 
   return (
-    <div style={{background:"#000",color:"white",minHeight:"100vh",padding:15}}>
-      <h2 style={{fontSize:"28px"}}>🚀 Phase 1.7 Radar System</h2>
+  <div style={{
+    background:"#000",
+    color:"white",
+    minHeight:"100vh",
+    display:"flex"
+  }}>
+
+    {/* COLUMNA IZQUIERDA - JUEGO */}
+    <div style={{flex:3, padding:15}}>
+
+      <h2 style={{fontSize:"28px"}}>🚀 Phase 2.1</h2>
 
       <div style={{fontSize:"18px"}}>
         Position: ({player.x.toFixed(1)},{player.y.toFixed(1)})
       </div>
 
       <div style={{width:"100%",height:16,background:"#333",marginTop:10}}>
-        <div style={{width:(player.energy/player.maxEnergy)*100+"%",height:"100%",background:"lime"}}/>
+        <div style={{
+          width:(player.energy/player.maxEnergy)*100+"%",
+          height:"100%",
+          background:"lime"
+        }}/>
       </div>
 
       <div style={{marginTop:12}}>
@@ -132,15 +170,106 @@ if (distance < state.player.radarRange * 0.6) {
           onClick={interact}>
           Interact
         </button>
+
+        {canAnalyze && (
+          <button
+            style={{...buttonStyle, background:"#ffaa00"}}
+            onClick={async ()=>{
+              await fetch("/api/claim",{
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({
+                  objectId:currentObject.id,
+                  playerId:"player1"
+                })
+              });
+
+              setCanAnalyze(false);
+
+              const res = await fetch("/api/claimed/player1");
+              const data = await res.json();
+              setClaimedObjects(data);
+            }}>
+            Analyze
+          </button>
+        )}
       </div>
 
       <canvas 
         ref={canvasRef} 
         width={900} 
         height={500} 
-        style={{border:"1px solid #0f0",marginTop:15,width:"100%",maxHeight:"70vh"}}
+        style={{
+          border:"1px solid #0f0",
+          marginTop:15,
+          width:"100%",
+          maxHeight:"70vh"
+        }}
       />
 
+      {showMinigame && currentObject && (
+        <MinigameModal
+          object={currentObject}
+          onClose={() => setShowMinigame(false)}
+          onResolved={async ({ score, maxScore }: any) => {
+            await fetch("/api/resolve", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+               objectId: currentObject.id,
+               score,
+               maxScore
+              })
+            });
+
+            setShowMinigame(false);
+            setCanAnalyze(true);
+          }}
+        />
+      )}
+
+      {showWormhole && currentObject && (
+  <WormholeModal
+    object={currentObject}
+    onClose={() => setShowWormhole(false)}
+  />
+)}
+
+
     </div>
-  );
+
+    {/* COLUMNA DERECHA - PANEL */}
+    <div style={{
+      flex:1,
+      borderLeft:"1px solid #0f0",
+      padding:15,
+      minWidth:250
+    }}>
+      <h3>🚀 Ship Panel</h3>
+
+      <div style={{marginTop:10}}>
+        <strong>Energy:</strong> {player.energy.toFixed(0)} / {player.maxEnergy}
+      </div>
+
+      <div style={{marginTop:10}}>
+        <strong>Radar Range:</strong> {player.radarRange}
+      </div>
+
+      <div style={{marginTop:20}}>
+        <h4>📦 Claimed Objects</h4>
+        {claimedObjects.length === 0 && (
+          <div style={{opacity:0.5}}>None yet</div>
+        )}
+        {claimedObjects.map(obj=>(
+          <div key={obj.id} style={{marginBottom:6}}>
+            {obj.type} | Lvl {obj.level}
+            <br/>
+            x{obj.multiplier?.toFixed(2)} | {obj.finalValue?.toFixed(0)}
+          </div>
+        ))}
+      </div>
+    </div>
+
+  </div>
+);
 }

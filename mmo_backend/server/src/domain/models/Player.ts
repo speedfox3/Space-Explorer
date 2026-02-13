@@ -3,6 +3,7 @@ export interface Player {
   x: number;
   y: number;
   energy: number;
+  systemId: string;
   maxEnergy: number;
   radarActive: boolean;
   radarRange: number;

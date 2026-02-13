@@ -1,4 +1,5 @@
 import { MemoryPlayerRepository } from "../infrastructure/memory/MemoryPlayerRepository";
+import { Universe } from "../domain/models/Universe";
 import { SpaceObject } from "../domain/models/SpaceObject";
 
 const SYSTEM_SIZE = 200;
@@ -7,33 +8,16 @@ const INTERACT_RADIUS = 5;
 
 export class WorldEngine {
 
-  private objects: SpaceObject[] = [];
-  private stars: {x:number,y:number,layer:number}[] = [];
+  constructor(
+    private repo: MemoryPlayerRepository,
+    private universe: Universe
+  ) {}
 
-  constructor(private repo: MemoryPlayerRepository) {
-    this.generateSystem();
-  }
+  private getCurrentSystem() {
+    const p = this.repo.get("player1");
+    if (!p) return null;
 
-  private generateSystem() {
-    const types = ["planet","asteroid","derelict","wormhole"] as const;
-
-    for (let i=0;i<20;i++) {
-      this.objects.push({
-        id: "obj_"+i,
-        type: types[Math.floor(Math.random()*types.length)],
-        x: Math.random()*SYSTEM_SIZE - HALF,
-        y: Math.random()*SYSTEM_SIZE - HALF,
-        discovered: false
-      });
-    }
-
-    for (let i=0;i<600;i++) {
-      this.stars.push({
-        x: Math.random()*SYSTEM_SIZE*3 - SYSTEM_SIZE*1.5,
-        y: Math.random()*SYSTEM_SIZE*3 - SYSTEM_SIZE*1.5,
-        layer: Math.random() < 0.33 ? 0.3 : (Math.random() < 0.66 ? 0.6 : 1)
-      });
-    }
+    return this.universe.getSystem(p.systemId);
   }
 
   tick() {
@@ -41,13 +25,13 @@ export class WorldEngine {
     if (!p) return;
 
     if (p.energy < p.maxEnergy) {
-      let regen = p.radarActive ? 0.3 : 0.8;
+      const regen = p.radarActive ? 0.3 : 0.8;
       p.energy = Math.min(p.maxEnergy, p.energy + regen);
       this.repo.save(p);
     }
   }
 
-  move(dx:number,dy:number) {
+  move(dx: number, dy: number) {
     const p = this.repo.get("player1");
     if (!p) return;
 
@@ -68,6 +52,7 @@ export class WorldEngine {
   toggleRadar() {
     const p = this.repo.get("player1");
     if (!p) return;
+
     p.radarActive = !p.radarActive;
     this.repo.save(p);
   }
@@ -76,7 +61,22 @@ export class WorldEngine {
     const p = this.repo.get("player1");
     if (!p) return null;
 
-    const candidates = this.objects.filter(o => !o.discovered);
+    const system = this.getCurrentSystem();
+    if (!system) return null;
+
+    const objectCandidates = system.objects.filter(o => !o.discovered);
+
+const wormholeCandidates = system.wormholes.map(w => ({
+  id: w.id,
+  type: "wormhole",
+  x: 0,
+  y: 0,
+  status: "undiscovered",
+  discovered: w.discovered,
+  wormhole: w
+}));
+
+const candidates = [...objectCandidates, ...wormholeCandidates];
     if (!candidates.length) return null;
 
     let closest = candidates[0];
@@ -93,28 +93,80 @@ export class WorldEngine {
     return { object: closest, distance: minDist };
   }
 
-  interact() {
-    const target = this.getClosestUndiscovered();
-    if (!target) return;
+ interact() {
+  const target = this.getClosestUndiscovered();
+  if (!target) return;
 
-    if (target.distance <= INTERACT_RADIUS) {
-      target.object.discovered = true;
+  if (target.distance <= INTERACT_RADIUS) {
+
+    if (target.object.type === "wormhole") {
+      return { type: "wormhole", data: target.object };
     }
-  }
 
-  getState() {
-    const p = this.repo.get("player1");
-    if (!p) return null;
-
-    const radarData = p.radarActive ? this.getClosestUndiscovered() : null;
-
-    const canInteract = radarData ? radarData.distance <= INTERACT_RADIUS : false;
-
-    return {
-      player: p,
-      radar: radarData,
-      stars: this.stars,
-      canInteract
-    };
+    target.object.discovered = true;
+    return { type: "object", data: target.object };
   }
 }
+
+  resolveMinigame(objectId: string, score: number, maxScore: number) {
+    const system = this.getCurrentSystem();
+    if (!system) return;
+
+    const obj = system.objects.find((o: SpaceObject) => o.id === objectId);
+    if (!obj) return;
+
+    const ratio = score / maxScore;
+    const multiplier = 0.4 + ratio * 0.8;
+
+    obj.multiplier = multiplier;
+  }
+
+  claimObject(objectId: string, playerId: string) {
+    const system = this.getCurrentSystem();
+    if (!system) return null;
+
+    const obj = system.objects.find((o: SpaceObject) => o.id === objectId);
+    if (!obj) return null;
+
+    if (obj.status === "claimed") return null;
+
+    obj.status = "claimed";
+    obj.claimedBy = playerId;
+
+    const mult = obj.multiplier ?? 1;
+
+    obj.finalValue = obj.baseValue * mult;
+    obj.finalResources = obj.baseResources * mult;
+
+    return obj;
+  }
+
+  getClaimedBy(playerId: string) {
+    const system = this.getCurrentSystem();
+    if (!system) return [];
+
+    return system.objects.filter((o: SpaceObject) => o.claimedBy === playerId);
+  }
+
+ getState() {
+  const p = this.repo.get("player1");
+  if (!p) return null;
+
+  const system = this.getCurrentSystem();
+  if (!system) return null;
+
+  const radarData = p.radarActive ? this.getClosestUndiscovered() : null;
+  const canInteract = radarData ? radarData.distance <= INTERACT_RADIUS : false;
+
+  return {
+    player: p,
+    radar: radarData,
+    stars: system.stars,
+    systemBackground: system.backgroundColor,
+    starColor: system.starColor,
+    canInteract
+  };
+}
+
+}
+
